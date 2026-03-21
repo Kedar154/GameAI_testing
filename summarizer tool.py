@@ -63,6 +63,3 @@ def run_session(npc_id: str, npc_name: str, player_id: str, exchanges: list[tupl
 
     return send_to_db(npc_id, npc_name, player_id, summary)
 
-
-
-    return send_to_db(npc_id, npc_name, player_id, summary)
