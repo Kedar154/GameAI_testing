@@ -2,17 +2,21 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import ToolNode, tools_condition
+from langgraph.types import interrupt, Command
 from langchain_core.tools import tool
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from typing import TypedDict, Annotated
 import json
+import os
 
-# ── State ────────────────────────────────────────────────────────────────────
+os.environ["GOOGLE_API_KEY"] = "AIzaSyAZDEqS1ZfYgFKtmtYAs5ed2RQl-3PXOBg"
+
+# ── State ─────────────────────────────────────────────────────────────────────
 
 class GameState(TypedDict):
     messages: Annotated[list, add_messages]
-    player_score: int        # we will use this inside a tool
+    player_score: int
     items_found: list
 
 # ── LLM ──────────────────────────────────────────────────────────────────────
@@ -42,7 +46,6 @@ def give_reward(item_name: str, player_score: int) -> str:
     """Give the player a reward based on their current score.
     player_score: pass the current score from game state."""
 
-    # ── this tool uses a state variable passed as argument ────────────
     if player_score > 50:
         bonus = 100
         message = f"High scorer bonus! You get {item_name} + 100 points."
@@ -56,13 +59,13 @@ def give_reward(item_name: str, player_score: int) -> str:
         "message": message
     })
 
+
 tools = [get_weather, search_item, give_reward]
 llm_with_tools = llm.bind_tools(tools)
 
 # ── Nodes ─────────────────────────────────────────────────────────────────────
 
 def agent_node(state: GameState):
-    # ── node has full state access ────────────────────────────────────
     score = state["player_score"]
     items = state["items_found"]
 
@@ -73,7 +76,8 @@ CURRENT GAME STATE:
 - Items found: {items}
 
 When calling give_reward, you MUST pass player_score={score} as an argument.
-"""
+Respond conversationally after tool results."""
+
     response = llm_with_tools.invoke(
         [SystemMessage(content=system_prompt)] + state["messages"]
     )
@@ -81,7 +85,7 @@ When calling give_reward, you MUST pass player_score={score} as an argument.
 
 
 def update_state_node(state: GameState):
-    # ── runs after every tool call, updates state from tool result ────
+    # find last tool message
     last_tool_msg = None
     for msg in reversed(state["messages"]):
         if isinstance(msg, ToolMessage):
@@ -100,14 +104,30 @@ def update_state_node(state: GameState):
     if "bonus" not in data:
         return {}
 
-    # update state fields
     new_score = state["player_score"] + data["bonus"]
     new_items = state["items_found"] + [data["item_name"]]
+
+    print(f"\n[STATE UPDATED] score: {state['player_score']} → {new_score}")
+    print(f"[STATE UPDATED] items: {state['items_found']} → {new_items}")
 
     return {
         "player_score": new_score,
         "items_found": new_items
     }
+
+
+def human_input_node(state: GameState):
+    # graph pauses here every time, waiting for next player message
+    player_input = interrupt("Waiting for player input")
+    return {"messages": [HumanMessage(content=player_input)]}
+
+# ── Routing ───────────────────────────────────────────────────────────────────
+
+def after_agent(state: GameState):
+    last_message = state["messages"][-1]
+    if hasattr(last_message, "tool_calls") and last_message.tool_calls:
+        return "tools"
+    return "human_input"
 
 # ── Graph wiring ──────────────────────────────────────────────────────────────
 
@@ -117,41 +137,42 @@ graph = StateGraph(GameState)
 graph.add_node("agent", agent_node)
 graph.add_node("tools", ToolNode(tools))
 graph.add_node("update_state", update_state_node)
+graph.add_node("human_input", human_input_node)
 
 graph.add_edge(START, "agent")
-graph.add_conditional_edges("agent", tools_condition)
+graph.add_conditional_edges("agent", after_agent)
 graph.add_edge("tools", "update_state")
 graph.add_edge("update_state", "agent")
+graph.add_edge("human_input", "agent")
 
 app = graph.compile(checkpointer=checkpointer)
 
 # ── Run ───────────────────────────────────────────────────────────────────────
 
-config = {"configurable": {"thread_id": "test_session_1"}}
+config = {"configurable": {"thread_id": "session_1"}}
 
-initial_state = {
-    "messages": [HumanMessage(content="give me a reward for finding the golden sword")],
+# first message — pass full initial state
+result = app.invoke({
+    "messages": [HumanMessage(content="hello, what can you do?")],
     "player_score": 75,
     "items_found": ["rusty_key"]
-}
+}, config=config)
 
-result = app.invoke(initial_state, config=config)
+print("\nAssistant:", result["messages"][-1].content)
+print("Score:", result["player_score"])
+print("Items:", result["items_found"])
 
-print("Final score:", result["player_score"])
-print("Items found:", result["items_found"])
-print("Last message:", result["messages"][-1].content)
+# conversation loop
+while True:
+    player_input = input("\nYou: ")
+    if player_input.lower() == "exit":
+        break
 
+    result = app.invoke(
+        Command(resume=player_input),
+        config=config
+    )
 
-
-'''
-**The three places state is accessed — summarised clearly:**
-```
-agent_node(state)        → reads state directly, injects into system prompt
-                           so LLM knows current score and passes it to tool
-
-give_reward(player_score) → receives state value as argument
-                            cannot read state itself, Officer LLM passes it
-
-update_state_node(state) → reads state directly, reads ToolMessage result,
-                           returns dict → LangGraph merges back into state
-'''
+    print("\nAssistant:", result["messages"][-1].content)
+    print("Score:", result["player_score"])
+    print("Items:", result["items_found"])

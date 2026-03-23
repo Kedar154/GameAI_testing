@@ -2,24 +2,24 @@ import requests
 import json
 from langchain_core.tools import tool
 
-HF_API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3"
-HF_TOKEN = "hf_api_key" #yet to place
+# HF_API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3"
+# HF_TOKEN = "hf_api_key" #yet to place
 
-def call_hf_llm(prompt: str) -> str:
-    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
-    payload = {
-        "inputs": prompt,
-        "parameters": {
-            "max_new_tokens": 200,
-            "return_full_text": False
-        }
-    }
-    response = requests.post(HF_API_URL, headers=headers, json=payload)
-    result = response.json()
+# def call_hf_llm(prompt: str) -> str:
+#     headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+#     payload = {
+#         "inputs": prompt,
+#         "parameters": {
+#             "max_new_tokens": 200,
+#             "return_full_text": False
+#         }
+#     }
+#     response = requests.post(HF_API_URL, headers=headers, json=payload)
+#     result = response.json()
     
-    if isinstance(result, list):
-        return result[0]["generated_text"].strip()
-    return ""
+#     if isinstance(result, list):
+#         return result[0]["generated_text"].strip()
+#     return ""
 
 
 @tool
@@ -63,7 +63,7 @@ Respond with exactly this JSON structure:
 }}
 [/INST]"""
 
-    raw = call_hf_llm(prompt)
+    raw = speed.invoke(prompt)
 
     try:
         start = raw.find("{")
