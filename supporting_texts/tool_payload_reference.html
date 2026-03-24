@@ -1,0 +1,351 @@
+
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; }
+.wrap { padding: 1rem 0; font-family: var(--font-sans); color: var(--color-text-primary); }
+.file-section { margin-bottom: 2rem; }
+.file-label { font-size: 11px; font-weight: 500; letter-spacing: .04em; color: var(--color-text-secondary); text-transform: uppercase; border-bottom: 0.5px solid var(--color-border-tertiary); padding-bottom: 6px; margin-bottom: 12px; }
+.tool-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); margin-bottom: 10px; overflow: hidden; }
+.tool-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; user-select: none; }
+.tool-header:hover { background: var(--color-background-secondary); }
+.tool-name { font-size: 13px; font-weight: 500; font-family: var(--font-mono); color: var(--color-text-primary); flex: 1; }
+.badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; white-space: nowrap; }
+.badge-old { background: var(--color-background-danger); color: var(--color-text-danger); }
+.badge-new { background: var(--color-background-success); color: var(--color-text-success); }
+.badge-merge { background: var(--color-background-warning); color: var(--color-text-warning); }
+.chevron { font-size: 12px; color: var(--color-text-tertiary); transition: transform .2s; }
+.chevron.open { transform: rotate(90deg); }
+.tool-body { display: none; padding: 0 14px 14px; border-top: 0.5px solid var(--color-border-tertiary); }
+.tool-body.open { display: block; }
+.section-title { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); margin: 10px 0 4px; text-transform: uppercase; letter-spacing: .04em; }
+.sig-box { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 8px 10px; font-family: var(--font-mono); font-size: 12px; color: var(--color-text-primary); margin-bottom: 4px; line-height: 1.5; }
+.sig-box .strike { text-decoration: line-through; color: var(--color-text-danger); }
+.sig-box .new { color: var(--color-text-success); }
+pre { margin: 0; font-family: var(--font-mono); font-size: 12px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 10px; color: var(--color-text-primary); }
+.key { color: #185FA5; }
+.str { color: #3B6D11; }
+.kw  { color: #854F0B; }
+.note { font-size: 12px; color: var(--color-text-secondary); margin-top: 6px; line-height: 1.5; }
+</style>
+<div class="wrap">
+
+<div class="file-section">
+<div class="file-label">File 1 — relevancy notebook (colab)</div>
+
+<div class="tool-card">
+  <div class="tool-header" onclick="toggle(this)">
+    <span class="tool-name">relevancy_ebd + relevancy_llm</span>
+    <span class="badge badge-merge">merge into one</span>
+    <span class="chevron">›</span>
+  </div>
+  <div class="tool-body">
+    <div class="section-title">Old signature (both tools)</div>
+    <div class="sig-box"><span class="strike">def relevancy_ebd(player_message: str, recent_context: str) -> str</span></div>
+    <div class="sig-box"><span class="strike">def relevancy_llm(player_message: str, recent_context: str) -> str</span></div>
+    <div class="section-title">New signature (single merged tool)</div>
+    <div class="sig-box"><span class="new">def check_relevancy(npc_id: str, session_id: str, player_id: str, payload: str) -> str</span></div>
+    <div class="section-title">Payload JSON</div>
+    <pre>{
+  <span class="key">"player_message"</span>: <span class="str">"We saw the missing page near the fireplace"</span>,
+  <span class="key">"recent_context"</span>:  <span class="str">"Where were you? I was in the study room..."</span>,
+  <span class="key">"method"</span>:          <span class="str">"embedding"</span>  <span class="kw">// or "llm"</span>
+}</pre>
+    <div class="section-title">Output (data field)</div>
+    <pre>{
+  <span class="key">"relevant"</span>:    <span class="kw">true</span>,
+  <span class="key">"score"</span>:       <span class="kw">0.64</span>,
+  <span class="key">"method_used"</span>: <span class="str">"embedding"</span>
+}</pre>
+    <p class="note">Rename: <code>player_message</code> (was <code>player_message</code> — already correct). <code>recent_context</code> stays. Add <code>method</code> to choose embedding vs LLM path.</p>
+  </div>
+</div>
+</div>
+
+<div class="file-section">
+<div class="file-label">File 2 — memory_tools.py</div>
+
+<div class="tool-card">
+  <div class="tool-header" onclick="toggle(this)">
+    <span class="tool-name">get_npc_memory</span>
+    <span class="badge badge-new">signature ok — payload change</span>
+    <span class="chevron">›</span>
+  </div>
+  <div class="tool-body">
+    <div class="section-title">Old signature</div>
+    <div class="sig-box">def get_npc_memory(npc_id, session_id, player_id, payload) <span class="kw">// outer ok</span></div>
+    <div class="section-title">Old payload (payload.db only)</div>
+    <div class="sig-box"><span class="strike">{ "db": {...} }</span></div>
+    <div class="section-title">New payload</div>
+    <pre>{
+  <span class="key">"db"</span>: <span class="str">"state['npc_db']"</span>  <span class="kw">// dict — no change, key name already correct</span>
+}</pre>
+    <div class="section-title">Output (data field)</div>
+    <pre>{
+  <span class="key">"npc_id"</span>:     <span class="str">"graves"</span>,
+  <span class="key">"canon_facts"</span>: [<span class="str">"Graves visited storage room"</span>],  <span class="kw">// renamed from "canon"</span>
+  <span class="key">"summary"</span>:    { <span class="str">"behavior"</span>: <span class="str">"..."</span>, <span class="str">"topics_discussed"</span>: [], <span class="str">"key_context"</span>: <span class="str">"..."</span> }
+}</pre>
+    <p class="note">Only change: rename output key <code>canon</code> → <code>canon_facts</code> for consistency with process_npc_memory.</p>
+  </div>
+</div>
+
+<div class="tool-card">
+  <div class="tool-header" onclick="toggle(this)">
+    <span class="tool-name">process_npc_memory</span>
+    <span class="badge badge-new">rename payload keys</span>
+    <span class="chevron">›</span>
+  </div>
+  <div class="tool-body">
+    <div class="section-title">Old payload keys</div>
+    <div class="sig-box"><span class="strike">existing_canon, previous_summary, latest_conversation</span></div>
+    <div class="section-title">New payload</div>
+    <pre>{
+  <span class="key">"latest_conversation"</span>: <span class="str">"Player: did you take page 42?\nNPC: no I didn't"</span>,
+  <span class="key">"canon_facts"</span>:         [<span class="str">"Graves was seen near pantry"</span>],  <span class="kw">// was existing_canon</span>
+  <span class="key">"previous_summary"</span>:    {                                  <span class="kw">// key name unchanged</span>
+    <span class="key">"behavior"</span>:         <span class="str">"calm, evasive"</span>,
+    <span class="key">"topics_discussed"</span>: [<span class="str">"alibi"</span>, <span class="str">"page 42"</span>],
+    <span class="key">"key_context"</span>:      <span class="str">"Player mentioned the ledger..."</span>
+  }
+}</pre>
+    <div class="section-title">Output (data field)</div>
+    <pre>{
+  <span class="key">"npc_id"</span>:          <span class="str">"graves"</span>,
+  <span class="key">"new_canon_facts"</span>:  [<span class="str">"Graves admitted visiting the office"</span>],
+  <span class="key">"updated_summary"</span>: { <span class="str">"behavior"</span>: <span class="str">"..."</span>, <span class="str">"topics_discussed"</span>: [], <span class="str">"key_context"</span>: <span class="str">"..."</span> }
+}</pre>
+    <p class="note">Rename <code>existing_canon</code> → <code>canon_facts</code>. Everything else stays.</p>
+  </div>
+</div>
+
+<div class="tool-card">
+  <div class="tool-header" onclick="toggle(this)">
+    <span class="tool-name">compress_short_term_memory</span>
+    <span class="badge badge-new">rename payload key</span>
+    <span class="chevron">›</span>
+  </div>
+  <div class="tool-body">
+    <div class="section-title">Old payload keys</div>
+    <div class="sig-box"><span class="strike">raw_turns, existing_summary</span></div>
+    <div class="section-title">New payload</div>
+    <pre>{
+  <span class="key">"short_term"</span>:       [<span class="str">"Player: where were you?"</span>, <span class="str">"NPC: in the hall"</span>],  <span class="kw">// was raw_turns</span>
+  <span class="key">"previous_summary"</span>: {                                                    <span class="kw">// was existing_summary</span>
+    <span class="key">"behavior"</span>:         <span class="str">"composed"</span>,
+    <span class="key">"topics_discussed"</span>: [<span class="str">"location"</span>],
+    <span class="key">"key_context"</span>:      <span class="str">"NPC claimed to be in the hall"</span>
+  }
+}</pre>
+    <div class="section-title">Output (data field)</div>
+    <pre>{
+  <span class="key">"npc_id"</span>:           <span class="str">"arjun"</span>,
+  <span class="key">"updated_summary"</span>:  { <span class="str">"behavior"</span>: <span class="str">"..."</span>, <span class="str">"topics_discussed"</span>: [], <span class="str">"key_context"</span>: <span class="str">"..."</span> },
+  <span class="key">"clear_short_term"</span>: <span class="kw">true</span>,
+  <span class="key">"reset_turn_count"</span>: <span class="kw">true</span>
+}</pre>
+    <p class="note">Rename <code>raw_turns</code> → <code>short_term</code> and <code>existing_summary</code> → <code>previous_summary</code>.</p>
+  </div>
+</div>
+
+<div class="tool-card">
+  <div class="tool-header" onclick="toggle(this)">
+    <span class="tool-name">update_npc_db</span>
+    <span class="badge badge-new">rename one payload key</span>
+    <span class="chevron">›</span>
+  </div>
+  <div class="tool-body">
+    <div class="section-title">Old payload keys</div>
+    <div class="sig-box"><span class="strike">db, new_canon_facts, updated_summary</span></div>
+    <div class="section-title">New payload</div>
+    <pre>{
+  <span class="key">"db"</span>:              { <span class="kw">/* state["npc_db"] */</span> },   <span class="kw">// unchanged</span>
+  <span class="key">"new_canon_facts"</span>: [<span class="str">"Graves poisoned the brandy"</span>],  <span class="kw">// unchanged</span>
+  <span class="key">"updated_summary"</span>: {                               <span class="kw">// unchanged</span>
+    <span class="key">"behavior"</span>:         <span class="str">"defensive, breaking down"</span>,
+    <span class="key">"topics_discussed"</span>: [<span class="str">"brandy"</span>, <span class="str">"poison"</span>],
+    <span class="key">"key_context"</span>:      <span class="str">"Player presented ledger evidence"</span>
+  }
+}</pre>
+    <div class="section-title">Output (data field)</div>
+    <pre>{
+  <span class="key">"db"</span>:          { <span class="kw">/* updated npc_db — write back to state */</span> },
+  <span class="key">"facts_added"</span>: <span class="kw">1</span>
+}</pre>
+    <p class="note">No key renames needed here — this tool was already well-formed. Just verify <code>canon</code> references inside the function body use <code>canon_facts</code> consistently.</p>
+  </div>
+</div>
+</div>
+
+<div class="file-section">
+<div class="file-label">File 3 — shimla ledger notebook (neo4j)</div>
+
+<div class="tool-card">
+  <div class="tool-header" onclick="toggle(this)">
+    <span class="tool-name">get_npc_data_tool</span>
+    <span class="badge badge-old">full refactor needed</span>
+    <span class="chevron">›</span>
+  </div>
+  <div class="tool-body">
+    <div class="section-title">Old signature</div>
+    <div class="sig-box"><span class="strike">def get_npc_data_tool(npc: str) -> dict</span></div>
+    <div class="section-title">New signature</div>
+    <div class="sig-box"><span class="new">def get_npc_data(npc_id: str, session_id: str, player_id: str, payload: str) -> str</span></div>
+    <div class="section-title">Payload JSON</div>
+    <pre>{
+  <span class="kw">// no extra fields needed — npc_id is already in the outer signature</span>
+  <span class="key">"_"</span>: <span class="str">"empty"</span>  <span class="kw">// pass {} — npc_id comes from outer param, not payload</span>
+}</pre>
+    <div class="section-title">Output (data field)</div>
+    <pre>{
+  <span class="key">"npc_id"</span>:      <span class="str">"arjun"</span>,
+  <span class="key">"personality"</span>: <span class="str">"nervous, polite, avoids conflict"</span>,
+  <span class="key">"npc_emotion"</span>: <span class="str">"COMPOSED"</span>,    <span class="kw">// was "state"</span>
+  <span class="key">"truth"</span>:       <span class="str">"I took page 42"</span>,   <span class="kw">// never shown to Officer in prompts</span>
+  <span class="key">"lie"</span>:         <span class="str">"The page was damaged"</span>
+}</pre>
+    <p class="note">Rename param <code>npc</code> → <code>npc_id</code>. Rename output key <code>state</code> → <code>npc_emotion</code>. Return JSON string via <code>_ok()</code> not raw dict.</p>
+  </div>
+</div>
+
+<div class="tool-card">
+  <div class="tool-header" onclick="toggle(this)">
+    <span class="tool-name">get_evidence_tool</span>
+    <span class="badge badge-old">full refactor needed</span>
+    <span class="chevron">›</span>
+  </div>
+  <div class="tool-body">
+    <div class="section-title">Old signature</div>
+    <div class="sig-box"><span class="strike">def get_evidence_tool() -> list</span></div>
+    <div class="section-title">New signature</div>
+    <div class="sig-box"><span class="new">def get_evidence(npc_id: str, session_id: str, player_id: str, payload: str) -> str</span></div>
+    <div class="section-title">Payload JSON</div>
+    <pre>{
+  <span class="kw">// no fields required — queries DB directly</span>
+  <span class="key">"filter_discovered"</span>: <span class="kw">true</span>  <span class="kw">// optional: false returns all evidence incl. undiscovered</span>
+}</pre>
+    <div class="section-title">Output (data field)</div>
+    <pre>{
+  <span class="key">"evidence_found"</span>: [<span class="str">"page_42"</span>, <span class="str">"brandy_vial"</span>]  <span class="kw">// was plain list return</span>
+}</pre>
+    <p class="note">Rename output key to <code>evidence_found</code>. Wrap return in <code>_ok()</code>. Add optional <code>filter_discovered</code> flag.</p>
+  </div>
+</div>
+
+<div class="tool-card">
+  <div class="tool-header" onclick="toggle(this)">
+    <span class="tool-name">update_npc_state_tool</span>
+    <span class="badge badge-old">full refactor needed</span>
+    <span class="chevron">›</span>
+  </div>
+  <div class="tool-body">
+    <div class="section-title">Old signature</div>
+    <div class="sig-box"><span class="strike">def update_npc_state_tool(npc: str, user_input: str, evidence: list) -> str</span></div>
+    <div class="section-title">New signature</div>
+    <div class="sig-box"><span class="new">def update_npc_emotion(npc_id: str, session_id: str, player_id: str, payload: str) -> str</span></div>
+    <div class="section-title">Payload JSON</div>
+    <pre>{
+  <span class="key">"player_message"</span>: <span class="str">"I know you took page 42"</span>,   <span class="kw">// was user_input</span>
+  <span class="key">"evidence_found"</span>: [<span class="str">"page_42"</span>]                   <span class="kw">// was evidence</span>
+}</pre>
+    <div class="section-title">Output (data field)</div>
+    <pre>{
+  <span class="key">"npc_id"</span>:      <span class="str">"arjun"</span>,
+  <span class="key">"npc_emotion"</span>: <span class="str">"DEFENSIVE"</span>   <span class="kw">// was plain string return</span>
+}</pre>
+    <p class="note">Rename <code>npc</code> → <code>npc_id</code>, <code>user_input</code> → <code>player_message</code>, <code>evidence</code> → <code>evidence_found</code>. Rename output field <code>state</code> → <code>npc_emotion</code>.</p>
+  </div>
+</div>
+
+<div class="tool-card">
+  <div class="tool-header" onclick="toggle(this)">
+    <span class="tool-name">cache_lookup_tool</span>
+    <span class="badge badge-old">full refactor needed</span>
+    <span class="chevron">›</span>
+  </div>
+  <div class="tool-body">
+    <div class="section-title">Old signature</div>
+    <div class="sig-box"><span class="strike">def cache_lookup_tool(prompt: str) -> str</span></div>
+    <div class="section-title">New signature</div>
+    <div class="sig-box"><span class="new">def manage_cache(npc_id: str, session_id: str, player_id: str, payload: str) -> str</span></div>
+    <div class="section-title">Payload JSON — lookup</div>
+    <pre>{
+  <span class="key">"operation"</span>:  <span class="str">"lookup"</span>,
+  <span class="key">"cache_key"</span>:  <span class="str">"&lt;md5 of prompt string&gt;"</span>  <span class="kw">// pre-hash before calling</span>
+}</pre>
+    <div class="section-title">Output (data field)</div>
+    <pre>{
+  <span class="key">"hit"</span>:      <span class="kw">true</span>,
+  <span class="key">"response"</span>: <span class="str">"cached NPC response text"</span>  <span class="kw">// null if hit=false</span>
+}</pre>
+    <p class="note">Merge <code>cache_lookup_tool</code> and <code>cache_store_tool</code> into single <code>manage_cache</code> tool with <code>operation</code> field.</p>
+  </div>
+</div>
+
+<div class="tool-card">
+  <div class="tool-header" onclick="toggle(this)">
+    <span class="tool-name">cache_store_tool</span>
+    <span class="badge badge-merge">merge into manage_cache</span>
+    <span class="chevron">›</span>
+  </div>
+  <div class="tool-body">
+    <div class="section-title">Old signature</div>
+    <div class="sig-box"><span class="strike">def cache_store_tool(prompt: str, response: str) -> str</span></div>
+    <div class="section-title">New — use manage_cache with operation: store</div>
+    <div class="section-title">Payload JSON — store</div>
+    <pre>{
+  <span class="key">"operation"</span>:  <span class="str">"store"</span>,
+  <span class="key">"cache_key"</span>:  <span class="str">"&lt;md5 of prompt string&gt;"</span>,
+  <span class="key">"response"</span>:   <span class="str">"NPC response text to cache"</span>
+}</pre>
+    <div class="section-title">Output (data field)</div>
+    <pre>{
+  <span class="key">"stored"</span>: <span class="kw">true</span>
+}</pre>
+  </div>
+</div>
+</div>
+
+<div class="file-section">
+<div class="file-label">File 4 — detect_lie (inline code)</div>
+
+<div class="tool-card">
+  <div class="tool-header" onclick="toggle(this)">
+    <span class="tool-name">detect_lie</span>
+    <span class="badge badge-old">full refactor needed</span>
+    <span class="chevron">›</span>
+  </div>
+  <div class="tool-body">
+    <div class="section-title">Old signature</div>
+    <div class="sig-box"><span class="strike">def detect_lie(player_message, lies_told, lies_caught, evidence_found) -> str</span><br><span style="font-size:11px;color:var(--color-text-secondary)">4 flat params, no envelope, no session/player context</span></div>
+    <div class="section-title">New signature</div>
+    <div class="sig-box"><span class="new">def detect_lie(npc_id: str, session_id: str, player_id: str, payload: str) -> str</span></div>
+    <div class="section-title">Payload JSON</div>
+    <pre>{
+  <span class="key">"player_message"</span>: <span class="str">"But we found the vial in the pantry"</span>,
+  <span class="key">"lies_told"</span>: {
+    <span class="key">"alibi"</span>:    <span class="str">"I stayed in office all evening"</span>,
+    <span class="key">"evidence"</span>: <span class="str">"I never touched the brandy"</span>
+  },
+  <span class="key">"lies_caught"</span>:    [<span class="str">"alibi"</span>],       <span class="kw">// already-caught lie keys — skip these</span>
+  <span class="key">"evidence_found"</span>: [<span class="str">"brandy_vial"</span>, <span class="str">"ledger"</span>]
+}</pre>
+    <div class="section-title">Output (data field)</div>
+    <pre>{
+  <span class="key">"lie_caught"</span>: <span class="kw">true</span>,
+  <span class="key">"topic"</span>:      <span class="str">"evidence"</span>,   <span class="kw">// key from lies_told, or null</span>
+  <span class="key">"reason"</span>:     <span class="str">"Player referenced the vial which contradicts NPC lie"</span>
+}</pre>
+    <p class="note">Rename <code>lies_told</code> stays (already correct). Rename output field — no change needed. Main work: wrap into <code>(npc_id, session_id, player_id, payload)</code> and return <code>_ok()</code> / <code>_err()</code> envelope instead of raw JSON string.</p>
+  </div>
+</div>
+</div>
+
+</div>
+<script>
+function toggle(header) {
+  const body = header.nextElementSibling;
+  const chev = header.querySelector('.chevron');
+  body.classList.toggle('open');
+  chev.classList.toggle('open');
+}
+</script>
