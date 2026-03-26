@@ -1,5 +1,7 @@
-from gamestate.gamestate import State
-from database.database_1 import retrieve
+from gamestate import State
+from database_1 import retrieve
+from llms import speed
+
 
 def retrieval(state: State):
     npc_name = state["current_npc"]
@@ -13,8 +15,8 @@ def retrieval(state: State):
 ## install json....
 
 
-
 def detect_lie(state: State):
+    
     npc_name = state["current_npc"]
     npc = state["npcs"][npc_name]
     
@@ -25,7 +27,7 @@ def detect_lie(state: State):
     lies_caught = npc.lies_caught
     evidence_found = state.evidence_found
     
-    prompt = f"""<s>[INST]
+    prompt = f"""
 You are a lie detection system for a murder mystery game. 
 Respond in JSON only. No explanation. No extra text.
 
@@ -33,7 +35,7 @@ PLAYER MESSAGE:
 {player_message}
 
 LIES THE NPC HAS TOLD:
-{json.dumps(lies_told, indent=2)}
+{lies_told}
 
 LIES ALREADY CAUGHT:
 {lies_caught}
@@ -45,11 +47,14 @@ TASK:
 Determine if the player's message has caught or challenged any of the NPC's lies.
 A lie is caught if the player references evidence or information that directly contradicts it.
 
-Respond with exactly this JSON structure:
+REMEMBER: 
+dont halucinate and create your own lies
+
+OUTPUT:
+resond with this exact structured JSON
 {{
-  "lie_caught": true or false,
-  "topic": "the key from lies_told that was caught, or null",
-  "reason": "one sentence explanation"
+"caught" : Respond with the EXACT words used by npc in the lie without altering it or adding any fillers to it,
+(if lie is not caught then return "none" nothing else)
 }}
 [/INST]"""
 
@@ -58,6 +63,10 @@ Respond with exactly this JSON structure:
     try:
         start = raw.find("{")
         end = raw.rfind("}") + 1
-        return raw[start:end]   # return JSON string — tool must return string
+        ans = raw[start:end]
+        if(ans['caught'] != 'none'):
+            lies_caught.append(ans)
+        return {'npc.lies_caught': lies_caught}
     except Exception:
-        return json.dumps({"lie_caught": False, "topic": None, "reason": "parse error"})
+        print("json failed, lie cant be sent, sending no change")
+        return {'npc.lies_caught': lies_caught}
