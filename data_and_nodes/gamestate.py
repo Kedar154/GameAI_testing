@@ -114,8 +114,9 @@ class NPC(BaseModel):
     
 
 class Officer(BaseModel):
+    npc_id: str = 'officer'
     chat_history: list[dict] = [{}]
-    summary: str = ""
+    running_summary: str = ""
     prompt: str = ""
     prompt_final: str = officer_prompt
 
@@ -148,9 +149,9 @@ state: State = {
     "npcs": {
         "arjun": arjun,
         "bell": bell,
-        "graves": graves
-    },
-    "officer": officer
+        "graves": graves,
+        'officer': officer
+    }
 }
 
 print("gamestate.py: initialised state")
