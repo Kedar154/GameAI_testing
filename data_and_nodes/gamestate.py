@@ -113,12 +113,7 @@ class NPC(BaseModel):
     
     
 
-class Officer(BaseModel):
-    npc_id: str = 'officer'
-    chat_history: list[dict] = [{}]
-    running_summary: str = ""
-    prompt: str = ""
-    prompt_final: str = officer_prompt
+
 
 class State(TypedDict):
     current_npc: str
@@ -126,12 +121,11 @@ class State(TypedDict):
     locations_unlocked: dict[str, bool]
     accusation_available: bool = False
     npcs: dict[str, NPC]
-    officer: Officer
 
 arjun = NPC(npc_id='arjun', prompt=arjun_prompt)
 bell = NPC(npc_id='bell', prompt=bell_prompt)
 graves = NPC(npc_id='graves', prompt=graves_prompt)
-officer = Officer(prompt_final=officer_prompt)
+officer = NPC(npc_id='officer', prompt_final=officer_prompt)
 
 state: State = {
     "current_npc": "",
