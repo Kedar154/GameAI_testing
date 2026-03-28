@@ -170,6 +170,11 @@ state: State = {
         "graves": graves,
         'officer': officer
     }
+   "current_location": "",
+    "officer_output": "",
+    "last_found_evidence": None,
+    "player_input": "",
+    "npc_response": ""
 }
 
 def npc_interaction_node(state: State) -> State:
