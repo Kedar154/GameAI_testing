@@ -12,23 +12,20 @@ Focus on:
 - what clue or accusation came up
 - any contradiction or suspicious reaction
 
-Do NOT write emotional fluff.
-Do NOT start with "The player".
-Be direct and factual.
-Return only the summary sentence.
-
-Examples:
-"Bell denied poisoning Thorne but became defensive when aconite was mentioned."
-"Arjun appeared anxious when page 42 was brought up."
-"Mrs. Graves stayed calm and redirected questions about the pantry."
+Do NOT write emotional fluff. Do NOT start with "The player". Be direct and factual.
 
 NPC: {npc_name}
 Player said: {player_input}
 NPC replied: {npc_response}
-"""
+
+Write the one-line summary now:"""
 
 
-def summarization_node(state: State, npc_name: str, player_input: str, npc_response: str):
+def summarization_node(state: State) -> dict:
+    npc_name = state["current_npc"]
+    player_input = state["player_input"]
+    npc_response = state["npc_response"]
+
     prompt = SUMMARY_PROMPT.format(
         npc_name=npc_name,
         player_input=player_input,
@@ -38,15 +35,19 @@ def summarization_node(state: State, npc_name: str, player_input: str, npc_respo
     response = client.chat.completions.create(
         model="llama-3.1-8b-instant",
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.2,
-        max_tokens=40
+        temperature=0.3,
+        max_tokens=60
     )
 
-    summary_line = response.choices[0].message.content.strip().split("\n")[0]
+    summary_line = response.choices[0].message.content.strip()
 
-    if state["officer"].summary:
-        state["officer"].summary += " " + summary_line
+    updated_officer = state["officer"].model_copy(deep=True)
+
+    if updated_officer.summary.strip():
+        updated_officer.summary += "\n" + summary_line
     else:
-        state["officer"].summary = summary_line
+        updated_officer.summary = summary_line
 
-    return state
+    return {
+        "officer": updated_officer
+    }

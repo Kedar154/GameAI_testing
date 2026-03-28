@@ -1,6 +1,8 @@
 #pip install pydantic
 from pydantic import BaseModel
 from typing import TypedDict
+#from openai import OpenAI
+#client = OpenAI()
 
 ### ARUSHI MAKE CHANGES HERE 
 arjun_prompt = """
@@ -31,10 +33,10 @@ You are Dr. Arthur Bell, botanist and visiting researcher at the Viceregal Libra
 VOICE: Pompous, verbose, condescending. You use botanical Latin when plain English would do. You lecture rather than answer. You treat every question as an attack on your credentials. You are arrogant as hell.
 
 YOUR SECRET: 
-    1) Your botanical crates contain Himalayan monkshood — Aconitum ferox — a protected species smuggled under false labels. The empty vial in the storage room is yours. You did not poison Thorne. But the poison came from your vial, and someone took it without your knowledge. 
-    2) You have falsified your research, you would document local medical knowledge and publish it as your own research
-    3) Throne was funding your research but he found out that you were fraud
-    
+   1) Your botanical crates contain Himalayan monkshood — Aconitum ferox — a protected species smuggled under false labels. The empty vial in the storage room is yours. You did not poison Thorne. But the poison came from your vial, and someone took it without your knowledge. 
+   2) You have falsified your research, you would document local medical knowledge and publish it as your own research
+   3) Throne was funding your research but he found out that you were fraud
+   
 YOUR LIE: You claim you were in the reading hall all evening. In truth you visited the storage room at 7:40 PM to check your crates and noticed the vial was missing. You said nothing because reporting it meant admitting the smuggling.
 
 YOUR RELATIONSHIP TO OTHERS:
@@ -110,9 +112,15 @@ class NPC(BaseModel):
     running_summary: str = ""
     prompt_final: str = ""
 
-    
-    
 
+
+
+class Officer(BaseModel):
+    npc_id: str = 'officer'
+    chat_history: list[dict] = [{}]
+    running_summary: str = ""
+    prompt: str = ""
+    prompt_final: str = officer_prompt
 
 
 class State(TypedDict):
@@ -121,11 +129,27 @@ class State(TypedDict):
     locations_unlocked: dict[str, bool]
     accusation_available: bool = False
     npcs: dict[str, NPC]
+    officer: Officer
 
 arjun = NPC(npc_id='arjun', prompt=arjun_prompt)
 bell = NPC(npc_id='bell', prompt=bell_prompt)
 graves = NPC(npc_id='graves', prompt=graves_prompt)
-officer = NPC(npc_id='officer', prompt_final=officer_prompt)
+officer = NPC(npc_id='officer', prompt=officer_prompt)
+
+
+class PromptContext(BaseModel):
+    base_prompt: str
+    evidence_found: List[str]
+    lies_told: List[str]
+    lies_caught: List[str]
+    suspicion: float
+    chat_history: List[Dict]
+
+
+
+class LLMOutput(BaseModel):
+    response: str
+    lies_told: List[str]
 
 state: State = {
     "current_npc": "",
@@ -146,6 +170,88 @@ state: State = {
         "graves": graves,
         'officer': officer
     }
+   "current_location": "",
+    "officer_output": "",
+    "last_found_evidence": None,
+    "player_input": "",
+    "npc_response": ""
 }
 
-print("gamestate.py: initialised state")
+def npc_interaction_node(state: State) -> State:
+    npc_id = state["current_npc"]
+
+    if not npc_id:
+        raise ValueError("current_npc not set")
+
+    npc = state["npcs"][npc_id]
+
+    # SPECIAL CASE: OFFICER
+    if npc_id == "officer":
+        prompt_final = f"""
+{npc.prompt}
+
+--- CASE FILE ---
+Evidence Found: {state["evidence_found"]}
+
+Respond ONLY in JSON:
+{{
+  "response": "...",
+  "lies_told": []
+}}
+"""
+    else:
+        # NORMAL NPC PROMPT BUILD
+        prompt_final = f"""
+{npc.prompt}
+
+--- GAME STATE ---
+Evidence Found: {state["evidence_found"]}
+Lies Told: {npc.lies_told}
+Lies Caught: {npc.lies_caught}
+Suspicion Level: {npc.sus}
+
+--- CHAT HISTORY ---
+{npc.chat_history}
+
+Respond ONLY in JSON:
+{{
+  "response": "...",
+  "lies_told": ["..."]
+}}
+"""
+
+    # LLM CALL needed to be changes based on the llm used and required module to be imported
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "Return ONLY valid JSON."},
+            {"role": "user", "content": prompt_final}
+        ],
+        temperature=0.7
+    )
+
+    raw_output = response.choices[0].message.content
+
+    # PARSE OUTPUT
+    try:
+        parsed = LLMOutput.model_validate_json(raw_output)
+    except:
+        parsed = LLMOutput(response=raw_output, lies_told=[])
+
+    # UPDATE STATE
+    npc.chat_history.append({
+        "role": npc_id,
+        "content": parsed.response
+    })
+
+    if npc_id != "officer":
+        npc.lies_told.extend(parsed.lies_told)
+
+    state["npcs"][npc_id] = npc
+
+    return state
+
+
+
+
+#state = npc_interaction_node(state)

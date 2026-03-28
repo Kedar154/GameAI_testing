@@ -1,8 +1,7 @@
 from llms import speed
-from data_and_nodes.gamestate import state as global_state
 
 
-SUMMARY_PROMPT = f"""You are summarizing one NPC interaction from a detective game.
+SUMMARY_PROMPT = """You are summarizing one NPC interaction from a detective game.
 
 Write exactly ONE sentence (max 20 words) that captures the most useful investigative signal from this exchange.
 
@@ -21,35 +20,32 @@ Examples:
 """
 
 
-def summarization_node(global_state):
-    npc_name = global_state['current_npc']
-    npc = global_state['npcs'][npc_name]
-    chat_history = npc['chat_history']
-    
-    """
-        chat history must be stored like 
-            chat_history = [
-                {"player": "Where were you?", "npc": "I was at the library."},
-                {"player": "With who?",        "npc": "Alone, I swear."},
-            ]
-    """
-    
+def summarization_node(state):
+    npc_name = state["current_npc"]
+
+    if not npc_name or npc_name not in state["npcs"]:
+        return {}
+
+    npc = state["npcs"][npc_name]
+    chat_history = npc.chat_history
+
+    if not chat_history:
+        return {}
+
     lastchat = chat_history[-1]
-    player_input = lastchat['player']
-    npc_response = lastchat['npc']
-    
+    player_input = lastchat["player"]
+    npc_response = lastchat["npc"]
+
     prompt_edited = f"""
-    {SUMMARY_PROMPT}
-    \n\n
-    
-    Here is the data: 
-    NPC: {npc_name}
-    Player said: {player_input}
-    NPC replied: {npc_response}
+{SUMMARY_PROMPT}
 
-    Write the one-line summary now:
+Here is the data:
+NPC: {npc_name}
+Player said: {player_input}
+NPC replied: {npc_response}
 
-    """
+Write the one-line summary now:
+"""
 
     response = speed.invoke(prompt_edited)
 
