@@ -1,3 +1,4 @@
+
 # EVIDENCE DATABASE
 
 EVIDENCE_DB = {
@@ -42,16 +43,24 @@ ACCUSATION_REQUIRED = {
 }
 
 
-# HELPER: TOTAL SUSPICION
+# HELPER
 
 def total_suspicion(state: State) -> float:
-    return sum(npc.sus for npc in state["npcs"].values())
+    return (
+        state["npcs"]["arjun"].sus
+        + state["npcs"]["bell"].sus
+        + state["npcs"]["graves"].sus
+    )
 
 
 # NODE 1: DISCOVER EVIDENCE
+# Uses state["last_found_evidence"]
 
 def discover_evidence_node(state: State) -> dict:
     evidence_id = state["last_found_evidence"]
+
+    if not evidence_id:
+        return {"officer_output": "No evidence selected."}
 
     if evidence_id not in EVIDENCE_DB:
         return {"officer_output": "Invalid evidence ID."}
@@ -63,12 +72,12 @@ def discover_evidence_node(state: State) -> dict:
     suspect = item["suspect"]
     score = item["score"]
 
-    # update local references
-    updated_evidence = state["evidence_found"] + [evidence_id]
+    updated_evidence = state["evidence_found"].copy()
+    updated_evidence.append(evidence_id)
+
     updated_npcs = state["npcs"].copy()
     updated_npcs[suspect].sus += score
 
-    # special trigger
     if evidence_id == "empty_aconite_vial":
         if "empty_aconite_vial_graves_link" not in updated_evidence:
             updated_evidence.append("empty_aconite_vial_graves_link")
@@ -77,10 +86,12 @@ def discover_evidence_node(state: State) -> dict:
     return {
         "evidence_found": updated_evidence,
         "npcs": updated_npcs,
-        "officer_output": item["script"] or "",
+        "officer_output": item["script"] or ""
     }
 
+
 # NODE 2: OFFICER SEARCH
+# Uses state["current_location"]
 
 def officer_search_node(state: State) -> dict:
     location = state["current_location"]
@@ -141,6 +152,7 @@ def unlock_interrogation_node(state: State) -> dict:
         "locations_unlocked": updated_locations
     }
 
+
 # NODE 5: ACCUSATION
 
 def accusation_node(state: State) -> dict:
@@ -159,4 +171,3 @@ def accusation_node(state: State) -> dict:
     return {
         "officer_output": f"Wrong. The evidence does not support accusing {accused_name}."
     }
-
