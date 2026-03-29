@@ -9,7 +9,7 @@ google_key = os.getenv("GEMINI_API_KEY2")
 import json
 import re
 import os
-import google.genai as genai
+import google.generativeai as genai
 
 
 INTENT_CATALOG = {
