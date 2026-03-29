@@ -160,11 +160,5 @@ state: State = {
         'officer': officer
     },
 
-    #to be changed 
-    "current_location": "",
-    "officer_output": "",
-    "last_found_evidence": None,
-    "player_input": "",
-    "npc_response": ""
 }
 
