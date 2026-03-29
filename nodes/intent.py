@@ -6,18 +6,33 @@ from nodes.sus import LOCATION_EVIDENCE
 
 keys = list(LOCATION_EVIDENCE.keys())
 intent_prompt = f'''
-    Role: You are an intent classifier. Identify the intention of the user in the given prompt.
+    Role: You are an intent classifier.
     
-    The suspects in the game are: arjun, bell, graves.
-    The searchable locations in the game are: Bedroom, Kitchen, Garden, Study.
+    SUSPECTS: arjun, bell, graves.
+    SEARCHABLE LOCATIONS: Bedroom, Kitchen, Garden, Study.
     
-    OUTPUT: Return a JSON with the following fields:
-    - conversation_with_suspects: true if the user wants to talk to a suspect, else false
-    - suspect_name: the name of the suspect (Arjun, Bell, or Graves) if conversation_with_suspects is true, else null
-    - conversation_with_officer: true if the user wants to talk to the officer, else false
-    - search_for_evidence: true if the user wants to search for evidence, else false
-    - search_location: the location to search {keys} if search_for_evidence is true, else null
-    - accusing_graves_as_killer: true if the user is accusing a suspect as killer, else false
+    OUTPUT (strict JSON only):
+{{
+  "conversation_with_suspect": true/false,
+  "suspect_name": "arjun" | "bell" | "graves" | null,
+
+  "conversation_with_officer": true/false,
+
+  "search_for_evidence": true/false,
+  "search_location": one of {keys} or null,
+
+  "accuse_graves": true/false
+}}
+
+RULES:
+- Return ONLY valid JSON. No extra text.
+- Use lowercase for all values.
+- If talking to a suspect → set conversation_with_suspect=true and fill suspect_name.
+- If talking to officer → set conversation_with_officer=true.
+- If searching → set search_for_evidence=true and fill search_location.
+- If accusing → set accuse_graves=true.
+- If multiple intents appear → choose the most dominant one.
+- If unclear → set all fields to false/null.
 '''
 
 class intent_engg(BaseModel):
