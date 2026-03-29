@@ -93,7 +93,5 @@ RULES:
 - Only state known or retrieved facts. No invention.
 - Never reveal the killer outright.
 - If a location is locked: state snow intrusion prevents access until conditions are met. Allow access only when conditions are satisfied.
-"""
-
 - If the player asks about a location that is locked, say that the snow has entered that room and it must be cleaned before going, only when the required conditions are satisfied allow search there.
 """
