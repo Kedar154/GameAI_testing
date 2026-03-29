@@ -60,6 +60,6 @@ state: State = {
     #to be changed 
     "current_location": "",
     "officer_output": "",
-    
+    "action": "",
     "npc_response": ""
 }
