@@ -35,9 +35,11 @@ garph.add_node('intent', intent)
 garph.set_entry_point("input")
 
 garph.add_edge("input",   "intent")
-garph.add_conditional_edges()
+
 garph.add_edge("retrieval",        "lie_detection")
 garph.add_edge('lie_detection', "sus")
 garph.add_edge("sus",    "prompt_response")
 garph.add_edge("prompt_response", "summarize")
 garph.add_edge("summarize",        "input")
+
+

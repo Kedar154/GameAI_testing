@@ -1,4 +1,4 @@
-from llms import speed
+from nodes.llms import speed
 
 
 SUMMARY_PROMPT = """You are summarizing one NPC interaction from a detective game.

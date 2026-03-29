@@ -2,12 +2,11 @@ from nodes.gamestate import State
 from pydantic import BaseModel
 from nodes.llms import speed
 from nodes.sus import LOCATION_EVIDENCE
-#from nodes.prompt import intent_prompt
+'''from nodes.prompt import intent_prompt'''
 
 keys = list(LOCATION_EVIDENCE.keys())
 intent_prompt = f'''
     Role: You are an intent classifier.
-    
     SUSPECTS: arjun, bell, graves.
     SEARCHABLE LOCATIONS: Bedroom, Kitchen, Garden, Study.
     
@@ -62,3 +61,4 @@ def intent(state):
             return "wrong_location"
     elif(result.accusing_graves_as_killer):
         return "accusing murder"
+
