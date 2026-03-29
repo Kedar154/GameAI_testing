@@ -1,3 +1,4 @@
+
 from data_and_nodes.gamestate import State
 from data_and_nodes.llms import conv
 from pydantic import BaseModel
@@ -6,7 +7,9 @@ from typing import Optional
 class LLMOutput(BaseModel):
     response: str
     lies_told: list[str] = []
-def prompt_repsonse(state: State) -> State:
+    
+
+def prompt_repsonse(state: State):
     npc_id = state["current_npc"]
     if not npc_id:
         raise ValueError("current_npc not set")

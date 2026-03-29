@@ -1,4 +1,6 @@
 from data_and_nodes.gamestate import State
+import copy
+
 # EVIDENCE DATABASE
 
 EVIDENCE_DB = {
@@ -17,56 +19,58 @@ EVIDENCE_DB = {
     "graves_personal_letters": {"suspect": "graves", "score": 10, "script": "Overdue notices. Payment requests. She needed the money."},
     "pantry_service_log": {"suspect": "graves", "score": 35, "script": "Thorne's brandy, 7:25 PM. Signed by Mrs. Eleanor Graves."},
     "pantry_bitter_smell": {"suspect": "graves", "score": 10, "script": "That smell again. Stronger here."},
-    "empty_decanter_residue": {"suspect": "graves", "score": 15, "script": "Residue on the stopper. Same bitter compound."}
+    "empty_decanter_residue": {"suspect": "graves", "score": 15, "script": "Residue on the stopper. Same bitter compound."},
 }
-
 
 # LOCATION → EVIDENCE
 
 LOCATION_EVIDENCE = {
-    "Thorne's study": ["thorne_diary"],
-    "Arjun's office": ["page_42", "arjun_margin_notes"],
+    "Thorne's study": ["brandy_glass", "stopped_clock", "thorne_diary"],
+    "Arjun's office": ["torn_manuscript", "page_42", "arjun_margin_notes"],
     "Reading hall": ["bells_field_journal"],
     "Storage room": ["bells_smuggling_crates", "empty_aconite_vial"],
     "Interrogation": ["bells_testimony"],
     "Admin office": ["coal_ledger_discrepancies", "graves_personal_letters"],
-    "Pantry": ["pantry_service_log", "pantry_bitter_smell", "empty_decanter_residue"]
+    "Pantry": ["pantry_service_log", "pantry_bitter_smell", "empty_decanter_residue"],
 }
-
 
 # ACCUSATION REQUIREMENTS
 
 ACCUSATION_REQUIRED = {
     "coal_ledger_discrepancies",
     "empty_aconite_vial",
-    "pantry_service_log"
+    "pantry_service_log",
 }
-
 
 # HELPER
 
-def total_suspicion(state: State) -> float:
+def total_suspicion(state):
     return (
         state["npcs"]["arjun"].sus
         + state["npcs"]["bell"].sus
         + state["npcs"]["graves"].sus
     )
 
-
 # NODE 1: DISCOVER EVIDENCE
-# Uses state["last_found_evidence"]
 
-def discover_evidence_node(state: State) -> dict:
-    evidence_id = state["last_found_evidence"]
-
+def discover_evidence_node(state, evidence_id):
     if not evidence_id:
-        return {"officer_output": "No evidence selected."}
+        return {
+            "evidence_found": state["evidence_found"],
+            "npcs": state["npcs"]
+        }
 
     if evidence_id not in EVIDENCE_DB:
-        return {"officer_output": "Invalid evidence ID."}
+        return {
+            "evidence_found": state["evidence_found"],
+            "npcs": state["npcs"]
+        }
 
     if evidence_id in state["evidence_found"]:
-        return {"officer_output": "Evidence already found."}
+        return {
+            "evidence_found": state["evidence_found"],
+            "npcs": state["npcs"]
+        }
 
     item = EVIDENCE_DB[evidence_id]
     suspect = item["suspect"]
@@ -75,7 +79,7 @@ def discover_evidence_node(state: State) -> dict:
     updated_evidence = state["evidence_found"].copy()
     updated_evidence.append(evidence_id)
 
-    updated_npcs = state["npcs"].copy()
+    updated_npcs = copy.deepcopy(state["npcs"])
     updated_npcs[suspect].sus += score
 
     if evidence_id == "empty_aconite_vial":
@@ -86,37 +90,29 @@ def discover_evidence_node(state: State) -> dict:
     return {
         "evidence_found": updated_evidence,
         "npcs": updated_npcs,
-        "officer_output": item["script"] or ""
     }
 
-
 # NODE 2: OFFICER SEARCH
-# Uses state["current_location"]
 
-def officer_search_node(state: State) -> dict:
-    location = state["current_location"]
-
+def officer_search_node(state, location):
     if not state["locations_unlocked"].get(location, False):
         return {
-            "officer_output": "This location is locked.",
-            "last_found_evidence": None
+            "evidence_found": state["evidence_found"],
+            "npcs": state["npcs"]
         }
 
     for evidence_id in LOCATION_EVIDENCE.get(location, []):
         if evidence_id not in state["evidence_found"]:
-            return {
-                "last_found_evidence": evidence_id
-            }
+            return discover_evidence_node(state, evidence_id)
 
     return {
-        "officer_output": "Nothing more to find here.",
-        "last_found_evidence": None
+        "evidence_found": state["evidence_found"],
+        "npcs": state["npcs"]
     }
-
 
 # NODE 3: GATE UPDATES
 
-def update_gates_node(state: State) -> dict:
+def update_gates_node(state):
     total = total_suspicion(state)
     case = state["evidence_found"]
 
@@ -138,13 +134,12 @@ def update_gates_node(state: State) -> dict:
 
     return {
         "locations_unlocked": updated_locations,
-        "accusation_available": accusation_available
+        "accusation_available": accusation_available,
     }
-
 
 # NODE 4: INTERROGATION UNLOCK
 
-def unlock_interrogation_node(state: State) -> dict:
+def unlock_interrogation_node(state):
     updated_locations = state["locations_unlocked"].copy()
     updated_locations["Interrogation"] = True
 
@@ -152,22 +147,21 @@ def unlock_interrogation_node(state: State) -> dict:
         "locations_unlocked": updated_locations
     }
 
-
 # NODE 5: ACCUSATION
 
-def accusation_node(state: State) -> dict:
-    accused_name = state["current_npc"].strip().lower()
+def accusation_node(state, accused_name):
+    accused_name = accused_name.strip().lower()
 
     if not state["accusation_available"]:
         return {
-            "officer_output": "Not enough evidence yet."
+            "accusation_available": state["accusation_available"]
         }
 
     if accused_name == "graves":
         return {
-            "officer_output": "Correct. Mrs. Graves is the killer."
+            "accusation_available": state["accusation_available"]
         }
 
     return {
-        "officer_output": f"Wrong. The evidence does not support accusing {accused_name}."
+        "accusation_available": state["accusation_available"]
     }
