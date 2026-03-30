@@ -4,9 +4,8 @@ from nodes.llms import speed, conv
 from nodes.summarizer import summarization_node
 from nodes.interaction import prompt_repsonse
 from nodes.input_node import input_node
-from nodes.sus import sus
 from nodes.intent import intent
-from nodes.graph import garph as graph
+from nodes.graph import garph_ as graph
 
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
@@ -31,8 +30,8 @@ def run(command):
         pass
     return graph.get_state(config).tasks[0].interrupts[0].value
 
-input = input("You: ")
-print("NPC:", run({"player_input": input, "npc_response": "Good evening."}))
+inp = input("You: ")
+print("NPC:", run({"player_input": inp, "npc_response": "Good evening."}))
 
 # Game loop
 while True:

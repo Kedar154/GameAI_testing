@@ -47,7 +47,7 @@ def total_suspicion(state) -> float:
 # ── NODE 1: OFFICER SEARCH 
 
 def officer_search_node(state: dict) -> dict:
-    location = state["current_location"]
+    location = state["search_location"]
 
     if not state["locations_unlocked"].get(location, False):
         return {

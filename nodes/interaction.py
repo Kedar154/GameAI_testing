@@ -159,7 +159,12 @@ OUTPUT JSON ONLY:
   
     state["npcs"][npc_id] = npc
 
-    return state
+    return { "npcs":
+        {
+            **state['npcs'],
+            npc_id : npc
+        }
+    }
 
 
 print("interaction.py: run successful")

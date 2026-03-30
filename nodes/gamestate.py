@@ -18,7 +18,7 @@ class NPC(BaseModel):
 
 
 class State(TypedDict):
-    current_npc: str = "" ##update throught fast api something
+    current_npc: str = "officer" ##update throught fast api something
     search: bool = False  ##update throught fast api something
     search_location: str = ""
     accusation_available: bool = False
@@ -28,7 +28,6 @@ class State(TypedDict):
     locations_unlocked: dict[str, bool]
     npcs: dict[str, NPC]
     player_input: str = "",
-    to_Search: str = "",
     
     ## to be changed
     officer_output: str = "",
@@ -40,7 +39,12 @@ graves = NPC(npc_id='graves', prompt=graves_prompt)
 officer = NPC(npc_id='officer', prompt=officer_prompt)
 
 state: State = {
-    "current_npc": "",
+    "current_npc": "officer",
+    "search": False,
+    "accusation_available": False,
+    "search_location": "",
+
+    
     "evidence_found": [],
     "locations_unlocked": {
         "Thorne's study": True,
@@ -51,7 +55,7 @@ state: State = {
         "Admin office": False,
         "Pantry": False
     },
-    "accusation_available": False,
+    
     "npcs": {
         "arjun": arjun,
         "bell": bell,
@@ -59,10 +63,7 @@ state: State = {
         'officer': officer
     },
     "player_input": "",
-    "to_search": "",
     #to be changed 
-    "current_location": "",
     "officer_output": "",
-    "action": "",
     "npc_response": ""
 }
