@@ -1,4 +1,4 @@
-from nodes.gamestate import State
+from nodes.gamestate import State, state
 from nodes.retrieval_lie_detection import retrieval, detect_lie
 from nodes.llms import speed, conv
 from nodes.summarizer import summarization_node
@@ -28,14 +28,16 @@ config = {"configurable": {"thread_id": "session-1"}}
 def run(command):
     for _ in graph.stream(command, config=config):
         pass
-    return graph.get_state(config).tasks[0].interrupts[0].value
+    state_values = graph.get_state(config).values
+    return state_values.get("npc_response", "...")
 
 inp = input("You: ")
-print("NPC:", run({"player_input": inp, "npc_response": "Good evening."}))
+state['player_input'] = inp
+print(f"{state['current_npc']}:", run(state))
 
 # Game loop
 while True:
     player_input = input("You: ")
-    if player_input == "quit":
+    if player_input.lower() == "quit":
         break
-    print("NPC:", run(Command(resume=player_input)))
+    print(f"{state['current_npc']}:", run(Command(resume=player_input)))
