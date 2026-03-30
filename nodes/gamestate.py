@@ -5,7 +5,7 @@ from nodes.prompt import arjun_prompt, officer_prompt, bell_prompt, graves_promp
 
 
 class NPC(BaseModel):
-    npc_id: str = ""
+    npc_id: str = "" 
     prompt: str = ""
 
     retrieved_data: str = ""
