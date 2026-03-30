@@ -6,12 +6,13 @@ from nodes.interaction import prompt_repsonse
 from nodes.input_node import input_node
 from nodes.sus import sus
 from nodes.intent import intent
+from nodes.graph import garph as graph
 
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.types import interrupt
+from langgraph.types import interrupt, Command
 from langchain_core.tools import tool
 #from langchain_core.messages import HumanMessage, SystemMessage
 #from langchain_google_genai import ChatGoogleGenerativeAI
@@ -24,4 +25,18 @@ import uuid
 import os
 
 
-#graphs have been moved to garphs.py
+config = {"configurable": {"thread_id": "session-1"}}
+def run(command):
+    for _ in graph.stream(command, config=config):
+        pass
+    return graph.get_state(config).tasks[0].interrupts[0].value
+
+input = input("You: ")
+print("NPC:", run({"player_input": input, "npc_response": "Good evening."}))
+
+# Game loop
+while True:
+    player_input = input("You: ")
+    if player_input == "quit":
+        break
+    print("NPC:", run(Command(resume=player_input)))
