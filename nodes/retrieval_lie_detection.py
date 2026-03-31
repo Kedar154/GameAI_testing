@@ -1,6 +1,7 @@
 from nodes.gamestate import State
 from nodes.database_1 import retrieve
 from nodes.llms import speed
+from pydantic import BaseModel
 
 
 def retrieval(state: State):
@@ -8,7 +9,7 @@ def retrieval(state: State):
     npc = state["npcs"][npc_name]
     print(npc.chat_history)
     last_message = npc.chat_history[-1]  # last message
-    message = last_message["player"]
+    message = f"for {npc_name} player requested: \n{last_message["player"]}"
     answer_from_db = retrieve(message)
     npc.retrieved_data = answer_from_db
     
@@ -19,16 +20,17 @@ def retrieval(state: State):
             }
             }
 
-### add the llm file
-## install json....
+class liar(BaseModel):
+    caught:str = ""
 
+struct_speed = speed.with_structured_output(liar)
 
 def detect_lie(state: State):
     
     npc_name = state["current_npc"]
     npc = state["npcs"][npc_name]
     
-    last_message = npc.chat_history[-1]  # last message
+    last_message = npc.chat_history[-1]
     player_message = last_message["player"]
     
     lies_told = npc.lies_told
@@ -36,8 +38,7 @@ def detect_lie(state: State):
     evidence_found = state['evidence_found']
     
     prompt = f"""
-You are a lie detection system for a murder mystery game. 
-Respond in JSON only. No explanation. No extra text.
+You are a lie detection system for a murder mystery game.
 
 PLAYER MESSAGE:
 {player_message}
@@ -55,39 +56,19 @@ TASK:
 Determine if the player's message has caught or challenged any of the NPC's lies.
 A lie is caught if the player references evidence or information that directly contradicts it.
 
-REMEMBER: 
-dont halucinate and create your own lies
+RULES:
+- If a lie is caught, return the EXACT words the NPC used in that lie.
+- If no lie is caught, return exactly: none
+- Do not hallucinate lies that aren't in the list above.
+"""
 
-OUTPUT:
-resond with this exact structured JSON
-{{
-"caught" : Respond with the EXACT words used by npc in the lie without altering it or adding any fillers to it,
-(if lie is not caught then return "none" nothing else)
-}}
-[/INST]"""
-
-    raw = speed.invoke(prompt)
-
-    try:
-        start = raw.find("{")
-        end = raw.rfind("}") + 1
-        ans = raw[start:end]
-        if(ans['caught'] != 'none'):
-            lies_caught.append(ans)
-            npc.lies_caught = lies_caught
-            return {'npcs':
-                {
-                npc_name: npc
-                }
-            }
-            
-    except Exception:
-        print("json failed, lie cant be sent, sending no change")
-        return {'npcs':
-                {
-                    **state['npcs'],
-                    npc_name: npc
-                }
-            }
+    raw = struct_speed.invoke(prompt)
+    print(raw)
+    
+    if raw.caught != "none":
+        lies_caught.append(raw.caught)
+        npc.lies_caught = lies_caught
+    
+    return {"npcs": {**state["npcs"], npc_name: npc}}
         
 print("retrieval_lie_detection.py: run successful")

@@ -3,6 +3,12 @@ from pydantic import BaseModel
 from typing import TypedDict
 from nodes.prompt import arjun_prompt, officer_prompt, bell_prompt, graves_prompt
 
+################
+x = "officer"
+s = False
+sl = ""
+aa = False
+################
 
 class NPC(BaseModel):
     npc_id: str = "" 
@@ -18,10 +24,10 @@ class NPC(BaseModel):
 
 
 class State(TypedDict):
-    current_npc: str = "officer" ##update throught fast api something
-    search: bool = False  ##update throught fast api something
-    search_location: str = ""
-    accusation_available: bool = False
+    current_npc: str = x ##update throught fast api something
+    search: bool = s  ##update throught fast api something
+    search_location: str = sl
+    accusation_available: bool = aa
 
     
     evidence_found: list[str]
@@ -39,10 +45,10 @@ graves = NPC(npc_id='graves', prompt=graves_prompt)
 officer = NPC(npc_id='officer', prompt=officer_prompt)
 
 state: State = {
-    "current_npc": "officer",
-    "search": False,
-    "accusation_available": False,
-    "search_location": "",
+    "current_npc": x,
+    "search": s,
+    "accusation_available": aa,
+    "search_location": sl,
 
     
     "evidence_found": [],

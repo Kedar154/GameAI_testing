@@ -1,4 +1,5 @@
 import copy
+from nodes.gamestate import State
 
 EVIDENCE_DB = {
     "brandy_glass":                   {"suspect": "graves", "score": 5,  "script": "The glass on his desk. Bitter. Sharp. That's not the drink."},
@@ -37,7 +38,7 @@ ACCUSATION_REQUIRED = {
 
 # ── HELPER (not a node) ───────────────────────────────────────────────────────
 
-def total_suspicion(state) -> float:
+def total_suspicion(state: State) -> float:
     return (
         state["npcs"]["arjun"].sus
         + state["npcs"]["bell"].sus
@@ -69,7 +70,7 @@ def officer_search_node(state: dict) -> dict:
 
 # ── NODE 2: DISCOVER EVIDENCE
 
-def discover_evidence_node(state: dict) -> dict:
+def discover_evidence_node(state: State) -> dict:
     evidence_id = state["last_found_evidence"]
 
     if not evidence_id:
@@ -104,7 +105,7 @@ def discover_evidence_node(state: dict) -> dict:
 
 # ── NODE 3: UPDATE GATES 
 
-def update_gates_node(state: dict) -> dict:
+def update_gates_node(state: State) -> dict:
     total     = total_suspicion(state)
     case      = state["evidence_found"]
     arjun_sus = state["npcs"]["arjun"].sus
@@ -127,13 +128,13 @@ def update_gates_node(state: dict) -> dict:
     }
 
 # ── NODE 4: UNLOCK INTERROGATION
-def unlock_interrogation_node(state: dict) -> dict:
+def unlock_interrogation_node(state: State) -> dict:
     updated_locations = state["locations_unlocked"].copy()
     updated_locations["Interrogation"] = True
     return {"locations_unlocked": updated_locations}
 
 # ── NODE 5: ACCUSATION 
-def accusation_node(state: dict) -> dict:
+def accusation_node(state: State) -> dict:
     if not state["accusation_available"]:
         return {"officer_output": "Not enough evidence yet."}
 

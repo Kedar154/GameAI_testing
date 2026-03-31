@@ -1054,8 +1054,6 @@ response_formatter = ResponseFormatter()
 
 
 def retrieve(user_input):
-    user_input = input("\nPlayer: ")
-
     output = run_game_query(
         user_input,
         neo4j_client,
@@ -1063,6 +1061,5 @@ def retrieve(user_input):
         query_builder,
         response_formatter
     )
-
-    out = ("\nDatabase:\n", output)
-    return out
+    print(f"Database: {output}")
+    return output

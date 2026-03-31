@@ -25,19 +25,26 @@ import os
 
 
 config = {"configurable": {"thread_id": "session-1"}}
-def run(command):
+def run(command, first=1):
     for _ in graph.stream(command, config=config):
         pass
     state_values = graph.get_state(config).values
-    return state_values.get("npc_response", "...")
+    current_npc = state_values["current_npc"]
+    npc = state_values["npcs"][current_npc]
+    #print(current_npc)
+    #print(f"npc object: {npc}")          # see full npc state
+    #print(f"chat_hist: {npc.chat_history}")
+    return npc.chat_history[-1]["npc"] if npc.chat_history else "..."
 
 inp = input("You: ")
-state['player_input'] = inp
-print(f"{state['current_npc']}:", run(state))
+state['player_input'] = "Describe who you are"
+print(f"{state['current_npc']}:", run(state, 0))
 
 # Game loop
 while True:
     player_input = input("You: ")
-    if player_input.lower() == "quit":
+    if player_input.lower() in ["quit", "e"]:
         break
     print(f"{state['current_npc']}:", run(Command(resume=player_input)))
+
+print("loop ended")
