@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 import os
 load_dotenv()
 
-google_key = os.getenv("GEMINI_API_KEY2")
+google_key = os.getenv("GEMINI_API_KEY3")
 
 
 

@@ -6,6 +6,7 @@ from nodes.interaction import prompt_repsonse
 from nodes.input_node import input_node
 from nodes.sus import officer_search_node, discover_evidence_node, accusation_node, update_gates_node
 from nodes.intent import intent
+from nodes.update_chat import update
 
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
@@ -33,12 +34,13 @@ garph.add_node('intent', intent)
 garph.add_node("officer_search_node", officer_search_node)
 garph.add_node("discover_evidence_node", discover_evidence_node)
 garph.add_node("update_gates_node", update_gates_node)
+garph.add_node("update", update)
 
 garph.add_node("accusation_node", accusation_node)
 garph.set_entry_point("input")
-
+garph.add_edge("input", 'update')
 garph.add_conditional_edges(
-        "input",
+        "update",
         intent,
         {
             "search": "officer_search_node",

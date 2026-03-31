@@ -7,12 +7,12 @@ def update(State):
        [ { 'player' : ... , 'npc' : ....}, { ... }, ]
     '''
     
-    old_chat_history = npc['chat_history']
+    old_chat_history = npc.chat_history
     s = [{
         'player' : player_inp, 'npc' : ""
     }]
-    new_chat_history = old_chat_history.extend(s)
-    npc.chat_history = new_chat_history
+    old_chat_history.extend(s)
+    npc.chat_history = old_chat_history
     
     return {'npcs':
             {

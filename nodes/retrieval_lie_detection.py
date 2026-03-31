@@ -6,7 +6,7 @@ from nodes.llms import speed
 def retrieval(state: State):
     npc_name = state["current_npc"]
     npc = state["npcs"][npc_name]
-    
+    print(npc.chat_history)
     last_message = npc.chat_history[-1]  # last message
     message = last_message["player"]
     answer_from_db = retrieve(message)
@@ -33,7 +33,7 @@ def detect_lie(state: State):
     
     lies_told = npc.lies_told
     lies_caught = npc.lies_caught
-    evidence_found = state.evidence_found
+    evidence_found = state['evidence_found']
     
     prompt = f"""
 You are a lie detection system for a murder mystery game. 
