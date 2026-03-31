@@ -9,7 +9,7 @@ EVIDENCE_DB = {
     "arjun_margin_notes":             {"suspect": "arjun",  "score": 5,  "script": "Notes in his handwriting — 'page 42, Thorne reviewing'."},
     "bells_field_journal":            {"suspect": "bell",   "score": 5,  "script": "Aconite extract, concentrated — for separate storage."},
     "bells_smuggling_crates":         {"suspect": "bell",   "score": 10, "script": "Himalayan monkshood. Protected species, falsely labelled."},
-    "empty_aconite_vial":             {"suspect": "bell",   "score": 10, "script": "Open vial case. Label reads Aconitum. Empty."},
+    "empty_aconite_vial":             {"suspect": "bell",   "score": 10, "script": "Open vial case. Label reads Aconitum. Ety."},
     "empty_aconite_vial_graves_link": {"suspect": "graves", "score": 20, "script": None},
     "bells_testimony":                {"suspect": "graves", "score": 25, "script": "Bell placed Mrs. Graves in the pantry corridor at 7:15."},
     "coal_ledger_discrepancies":      {"suspect": "graves", "score": 30, "script": "Every approval carries Mrs. Graves's signature."},
