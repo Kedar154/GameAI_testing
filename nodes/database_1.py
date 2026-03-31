@@ -1061,5 +1061,5 @@ def retrieve(user_input):
         query_builder,
         response_formatter
     )
-    print(f"Database: {output}")
+    #print(f"Database: {output}")
     return output

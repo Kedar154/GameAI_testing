@@ -63,7 +63,7 @@ RULES:
 """
 
     raw = struct_speed.invoke(prompt)
-    print(raw)
+    #print(raw)
     
     if raw.caught != "none":
         lies_caught.append(raw.caught)
