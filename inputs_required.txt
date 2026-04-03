@@ -1,0 +1,95 @@
+input_node: None
+
+intent_node:
+    input: player_input
+    process:
+    //finds search in text and location for searching
+    //finds talk to "npc" in text to switch npc
+    output:
+    # updating search, search_location, current_npc, npc_response when searching or not searching
+    # updating current_npc and npc.chat_history
+
+Intent: 
+    input: search, search_location, accusation_available, current_npc
+    process: routing
+    output: 
+    #search for searching
+    #accusation_available or not
+    #routing the conversation
+
+conversation:
+    retrieval:
+        input: 
+            current_npc
+            npc object
+            chat_history
+        process:
+            #update retrieved data from database_1
+        output: 
+            updated retrieved_data
+
+    detect_lie:
+        input: 
+            current_npc
+            npc object
+            chat_history
+        process:
+            catch if npc has spoken a lie
+        output:
+            update lies_caught
+
+    prompt_response:
+        input:
+            current_npc
+            npc object
+            chat_hist
+        process:
+            generate npc_response in json and extract it
+            decrease the chat history to only 6 message and replies
+        output:
+            update npc_response and npc.chat_history
+
+    summarizer
+        input:
+            current_npc
+            npc object
+            chat_history
+        process:
+            generate npc.running_summary
+        output:
+            update npc.running_summary
+    
+searching:
+    officer_search_node:
+        input: 
+            search_location
+        process:
+            check if location is correct and update the search_result by saying you have searched 
+        output:
+            updating search_result, last_found_evidence
+
+    discover_evidence_node:
+        input: 
+            last_found_evidence
+        process:
+            take the last_found_evidence id and find the evidence and update sus score, evidence_found
+        output:
+            update sus, evidence_found, npc_object, last_found_evidence, search_result
+
+    update_gates_node:
+        input: 
+            sum of all npc sus score
+            evidence_found
+            arjun_sus
+            bell_sus
+            locations unlock
+        process:
+            update locations_unlocked
+        output:
+            update locations_unlocked
+            update accusation_available
+
+accusation:
+    handled in prompt node not required
+
+

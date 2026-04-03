@@ -26,9 +26,9 @@ def summarization_node(state):
     if not npc_name or npc_name not in state["npcs"]:
         return {}
 
-    # officer conversations don't need summarising
-    if npc_name == "officer":
-        return {}
+    # officer conversations DO need summarising
+    '''if npc_name == "officer":
+        return {}'''
 
     npc          = state["npcs"][npc_name]
     chat_history = npc.chat_history

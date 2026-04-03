@@ -41,15 +41,16 @@ def intent_node(state: State) -> dict:
         "search":          False,
         "search_location": "",
         "current_npc":     new_npc,
-        "npcs":            {**npcs, new_npc: npc}
+        "npcs":            {**npcs, new_npc: npc},
+        "search_result": ""
     }
 
 
-def intent(state: State) -> str:
+def router(state: State) -> str:
     if state.get("search") and state.get("search_location", "") != "":
         return "search"
-    if state.get("accusation_available"):
-        return "accusation_available"
+    '''if state.get("accusation_available"):
+        return "accusation_available"'''
     current_npc = state.get("current_npc", "officer")
     if current_npc in ("arjun", "bell", "graves"):
         return "npc"

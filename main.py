@@ -8,7 +8,7 @@ def run(command):
     for _ in graph.stream(command, config=config):
         pass
     values      = graph.get_state(config).values
-    officer_out = values.get("officer_output", "").strip()
+    officer_out = values['search_result']
     npc_out     = values.get("npc_response",   "").strip()
     return officer_out if officer_out else (npc_out or "...")
 
@@ -26,10 +26,9 @@ def show_debug():
         print(f"    {loc:<22} {'open' if unlocked else 'locked'}")
     print("\n  ── NPC SUS ──")
     for npc_id, npc in values.get("npcs", {}).items():
-        if npc_id == "officer":
-            continue
-        print(f"  {npc_id:<8} sus={npc.sus}  lies_caught={npc.lies_caught}")
+        print(f"  {npc_id:<8} locations_unlocked={values.get('locations_unlocked',"")} \n evidence_found={values.get('evidence_found', "")}")
         print(f"           summary: {npc.running_summary or '(empty)'}")
+        print(f"           retrieved data: {npc.retrieved_data or '(empty)'}")
     print("═══════════════════\n")
 
 print("Type 'quit' to exit. Type 'debug' to see game state.\n")

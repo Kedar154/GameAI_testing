@@ -189,6 +189,9 @@ Output ONLY valid JSON, nothing before or after:
                 history_lines.append(f"You: {entry['npc']}")
         history_str = "\n".join(history_lines) or "No prior conversation."
 
+
+        ## removed the history as it is not needed we have running sumary for that
+        
         prompt_final = f"""
 You are {npc_id} in a 1920s murder mystery. Stay completely in character at all times.
 
@@ -202,8 +205,8 @@ You are {npc_id} in a 1920s murder mystery. Stay completely in character at all 
 Evidence discovered: {state.get("evidence_found", [])}
 Lies the player has caught you in: {npc.lies_caught}
 
-=== YOUR CONVERSATION HISTORY WITH THIS PLAYER ===
-{history_str}
+=== if {npc_id} is graves ONLY THEN see the next line else ignore it and move forward ===
+    accusation_available = {state['accusation_available']}
 
 === ADDITIONAL CONTEXT FROM THE CASE FILE ===
 {retrieved if retrieved else "Nothing additional."}
@@ -234,7 +237,7 @@ Output ONLY valid JSON, nothing before or after it:
         parsed_response = "..."
 
     chat_hist[-1]    = {"player": player_message, "npc": parsed_response}
-    npc.chat_history = chat_hist[-6:]
+    npc.chat_history = chat_hist[-6:] #reduces the load on chat history
 
     if npc_id != "officer":
         for lie in parsed_lies:

@@ -43,7 +43,104 @@ def total_suspicion(state) -> float:
         + state["npcs"]["graves"].sus
     )
 
+def officer_search_node(state: dict) -> dict:
+    location = state.get("search_location", "")
 
+    if not location:
+        return {
+            "search_result":       "Specify a location to search.",
+            "last_found_evidence": None,
+        }
+
+    if not state["locations_unlocked"].get(location, False):
+        return {
+            "search_result":       f"The {location} is inaccessible — snow damage has sealed it. You need more evidence first.",
+            "last_found_evidence": None,
+        }
+
+    unfound = [e for e in LOCATION_EVIDENCE.get(location, []) if e not in state["evidence_found"]]
+
+    if unfound:
+        return {
+            "search_result":       "",
+            "last_found_evidence": unfound,
+        }
+
+    return {
+        "search_result":       f"You've found everything in the {location}.",
+        "last_found_evidence": None,
+    }
+
+
+def discover_evidence_node(state: dict) -> dict:
+    evidence_ids = state.get("last_found_evidence")
+
+    if not evidence_ids:
+        return {}
+
+    updated_evidence = state["evidence_found"].copy()
+    updated_npcs     = copy.deepcopy(state["npcs"])
+    scripts          = []
+
+    for evidence_id in evidence_ids:
+        if evidence_id not in EVIDENCE_DB:
+            continue
+        if evidence_id in updated_evidence:
+            continue
+
+        item    = EVIDENCE_DB[evidence_id]
+        suspect = item["suspect"]
+        score   = item["score"]
+        script  = item["script"]
+
+        updated_evidence.append(evidence_id)
+        updated_npcs[suspect].sus += score
+
+        if script:
+            scripts.append(script)
+
+        if evidence_id == "empty_aconite_vial":
+            if "empty_aconite_vial_graves_link" not in updated_evidence:
+                updated_evidence.append("empty_aconite_vial_graves_link")
+                updated_npcs["graves"].sus += 20
+
+    return {
+        "evidence_found":      updated_evidence,
+        "npcs":                updated_npcs,
+        "search_result":       "\n\n".join(scripts),
+        "last_found_evidence": None,
+    }
+
+def update_gates_node(state: dict) -> dict:
+    total     = total_suspicion(state)
+    case      = state["evidence_found"]
+    arjun_sus = state["npcs"]["arjun"].sus
+    bell_sus  = state["npcs"]["bell"].sus
+
+    updated_locations = state["locations_unlocked"].copy()
+
+    if total > 15 and "brandy_glass" in case:
+        updated_locations["Storage room"] = True
+
+    if total > 50 and arjun_sus > 20:
+        updated_locations["Admin office"] = True
+
+    if total > 90 and bell_sus > 20:
+        updated_locations["Pantry"] = True
+
+    return {
+        "locations_unlocked":   updated_locations,
+        "accusation_available": ACCUSATION_REQUIRED.issubset(set(case))
+    }
+
+
+def unlock_interrogation_node(state: dict) -> dict:
+    updated_locations = state["locations_unlocked"].copy()
+    updated_locations["Interrogation"] = True
+    return {"locations_unlocked": updated_locations}
+
+
+'''
 def officer_search_node(state: dict) -> dict:
     location = state.get("search_location", "")
 
@@ -59,16 +156,17 @@ def officer_search_node(state: dict) -> dict:
             "last_found_evidence": None,
         }
 
-    for evidence_id in LOCATION_EVIDENCE.get(location, []):
-        if evidence_id not in state["evidence_found"]:
-            return {
-                "officer_output":      "",
-                "last_found_evidence": evidence_id,
-            }
+    unfound = [e for e in LOCATION_EVIDENCE.get(location, []) if e not in state["evidence_found"]]
+
+    if unfound:
+        return {
+        "officer_output": "",
+        "last_found_evidence": unfound,  # full list
+        }
 
     return {
-        "officer_output":      f"You've found everything in the {location}.",
-        "last_found_evidence": None,
+    "officer_output": f"You've found everything in the {location}.",
+    "last_found_evidence": None,
     }
 
 
@@ -106,46 +204,17 @@ def discover_evidence_node(state: dict) -> dict:
         "officer_output":      script or "",
         "last_found_evidence": None,
     }
+'''
 
-
-def update_gates_node(state: dict) -> dict:
-    total     = total_suspicion(state)
-    case      = state["evidence_found"]
-    arjun_sus = state["npcs"]["arjun"].sus
-    bell_sus  = state["npcs"]["bell"].sus
-
-    updated_locations = state["locations_unlocked"].copy()
-
-    if total > 15 and "brandy_glass" in case:
-        updated_locations["Storage room"] = True
-
-    if total > 50 and arjun_sus > 20:
-        updated_locations["Admin office"] = True
-
-    if total > 90 and bell_sus > 20:
-        updated_locations["Pantry"] = True
-
-    return {
-        "locations_unlocked":   updated_locations,
-        "accusation_available": ACCUSATION_REQUIRED.issubset(set(case)),
-        "officer_output":       state.get("officer_output", ""),
-    }
-
-
-def unlock_interrogation_node(state: dict) -> dict:
-    updated_locations = state["locations_unlocked"].copy()
-    updated_locations["Interrogation"] = True
-    return {"locations_unlocked": updated_locations}
-
-
+'''
 def accusation_node(state: dict) -> dict:
     if not state["accusation_available"]:
-        return {"officer_output": "You don't have enough evidence yet to make an accusation."}
+        return {"": "You don't have enough evidence yet to make an accusation."}
 
     accused = state.get("player_input", "").lower()
 
     if "graves" in accused:
-        return {"officer_output": (
+        return {"": (
             "You accuse Mrs. Eleanor Graves.\n"
             "A silence falls over the room.\n"
             "Graves exhales slowly. 'So you have found the truth.'\n"
@@ -155,3 +224,4 @@ def accusation_node(state: dict) -> dict:
         )}
 
     return {"officer_output": f"The evidence does not support that accusation. Keep investigating."}
+    '''
