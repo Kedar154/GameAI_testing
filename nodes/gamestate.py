@@ -4,9 +4,9 @@ from typing import TypedDict
 from nodes.prompt import arjun_prompt, officer_prompt, bell_prompt, graves_prompt
 
 ################
-x = "graves"
-s = False
-sl = ""
+x = "search"
+s = True
+sl = "Thorne's study"
 aa = False
 ################
 

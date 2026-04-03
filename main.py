@@ -30,21 +30,24 @@ def run(command, first=1):
         pass
     state_values = graph.get_state(config).values
     current_npc = state_values["current_npc"]
-    npc = state_values["npcs"][current_npc]
-    #print(current_npc)
-    #print(f"npc object: {npc}")          # see full npc state
-    #print(f"chat_hist: {npc.chat_history}")
-    return npc.chat_history[-1]["npc"] if npc.chat_history else "..."
+    if(current_npc!="search"):
+        npc = state_values["npcs"][current_npc]
+        #print(current_npc)
+        #print(f"npc object: {npc}")          # see full npc state
+        #print(f"chat_hist: {npc.chat_history}")
+        print(f"retrieved data: {npc.retrieved_data}")
+        return f"{state['current_npc']}: {npc.chat_history[-1]["npc"] if npc.chat_history else "could you repeat the question"}"
+    else:
+        return f"Officer: {state_values["evidence_found"][-1]}"
 
 inp = input("You: ")
-state['player_input'] = "Describe who you are"
-print(f"{state['current_npc']}:", run(state, 0))
+run(state, 0)
 
 # Game loop
 while True:
     player_input = input("You: ")
     if player_input.lower() in ["quit", "e"]:
         break
-    print(f"{state['current_npc']}:", run(Command(resume=player_input)))
+    run(Command(resume=player_input))
 
 print("loop ended")

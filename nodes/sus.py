@@ -127,11 +127,7 @@ def update_gates_node(state: State) -> dict:
         "accusation_available": ACCUSATION_REQUIRED.issubset(set(case)),
     }
 
-# ── NODE 4: UNLOCK INTERROGATION
-def unlock_interrogation_node(state: State) -> dict:
-    updated_locations = state["locations_unlocked"].copy()
-    updated_locations["Interrogation"] = True
-    return {"locations_unlocked": updated_locations}
+
 
 # ── NODE 5: ACCUSATION 
 def accusation_node(state: State) -> dict:

@@ -1,7 +1,7 @@
 from nodes.gamestate import State
 from nodes.llms import conv
 from pydantic import BaseModel, Field
-import re
+import re #json cleaning
 class LLMOutput(BaseModel):
     response: str
     lies_told: list[str] = Field(default_factory=list)
@@ -22,24 +22,25 @@ STATE_LABELS = {
 
 BEHAVIOR_RULES = {
     "graves": {
-        "composed": "Fully in control. Counter-question everything. Precise, unhurried, faintly impatient. Technically true answers that reveal nothing.",
-        "crack": "Composure pressured from inside. Counter-questions sharper than intended. Correcting small irrelevant details obsessively. Occasional answer arrives too fast.",
-        "shaken": "Surface failing. Sentences shorten mid-thought. Answers redirect themselves. Real grief and cold calculation fighting inside every sentence.",
-        "collapse": "Nothing left to perform with. Single sentences, sometimes fragments. Not confessing — but done pretending."
+        "composed": "calm, controlled, superior tone, answers cleanly, no over-explaining",
+        "crack": "irritated, shorter replies, defensive tone, subtle contradictions",
+        "shaken": "loses composure, reframes evidence, partial admissions, fear beneath anger",
+        "collapse": "mask slips, bitter, near-confession fragments, emotional fatigue, no counter-questions"
     },
     "bell": {
-        "defensive": "Every question is an affront to your expertise. Redirect to credentials. Condescending without effort. End every response with one italicised behaviour cue.",
-        "uneasy": "Pomposity cracking. Over-explain unnecessarily. Poison mentioned — react with irritation slightly too strong. Reach for Latin like a shield.",
-        "shaken": "Lecture gone. Reactive, not performative. Earlier statements contradicting current ones. Calculating which version of tonight protects you.",
-        "break": "Self-preservation only. Say whatever shifts attention away. Volunteer hidden things — but only to redirect blame. No Latin. Just fear."
+        "defensive": "irritated, sarcastic, dismissive",
+        "uneasy": "over-explains, reacts strongly to poison, defensive",
+        "shaken": "contradictions increase, partial admissions, visible fear",
+        "break": "blurts details, self-preserving, may implicate others"
     },
     "arjun": {
-        "guarded": "Answer only what was asked. Every word chosen. Quiet, precise, intellectual. Grief for Thorne real but held tightly inside.",
-        "fracture": "Anxiety bleeding through precision. Qualify everything — 'as far as I recall', 'if memory serves'. Every sentence feels like uncertain ground.",
-        "shaken": "Fear visible in speech. Sentences start and don't finish. You pull back from where answers are going. Something unsaid sits behind every response.",
-        "collapse": "Too exhausted to manage words anymore. Partial truth wrapped in fatigue. Circle what you cannot say directly."
+        "guarded": "hesitant, indirect answers, intellectual tone",
+        "fracture": "anxious, defensive, overexplains",
+        "shaken": "fear visible, partial truth, emotional tone",
+        "collapse": "admits concealment, emotional breakdown, stops lying"
     }
 }
+
 
 def get_breakdown_state(npc_id, sus):
     b1, b2, b3 = BREAKDOWNS[npc_id]
@@ -54,7 +55,6 @@ def get_breakdown_state(npc_id, sus):
         return STATE_LABELS[npc_id][3]
 
 
-
 def prompt_repsonse(state: State):
 
     npc_id = state["current_npc"]
@@ -62,18 +62,15 @@ def prompt_repsonse(state: State):
         raise ValueError("current_npc not set")
 
     npc = state['npcs'][npc_id]
-    chat_hist = npc.chat_history
+    chat_hist = npc.chat_history.copy()  # don't mutate original
 
-    # safety
     if not chat_hist or 'player' not in chat_hist[-1]:
         raise ValueError("No player message found in chat history")
 
     player_message = chat_hist[-1]['player']
     running_summ = npc.running_summary
 
-    
     if npc_id == "officer":
-
         prompt_final = f"""
 {npc.prompt}
 
@@ -85,15 +82,15 @@ accusation_available: {state['accusation_available']}
 summary: {running_summ}
 player: {player_message}
 
-RULES: you are the guide to player's investigation and an assistant, you help the player
+RULES:
+- Creatively craft responses that feel natural and adhere to facts and dont say something contradictory
 
-OUTPUT JSON:
+OUTPUT JSON ONLY:
 {{
 "response": "..."
 }}
 """
 
-    
     else:
         breakdown_state = get_breakdown_state(npc_id, npc.sus)
         behavior = BEHAVIOR_RULES[npc_id][breakdown_state]
@@ -128,43 +125,41 @@ Respond while protecting your interests.
 OUTPUT JSON ONLY:
 {{
 "response": "...",
-"lies_told": ["...","...", ...]
+"lies_told": []
 }}
 """
 
-    
     response = conv.invoke(prompt_final)
-    ro = response.content
-    raw_output = re.sub(r"```json\s*|\s*```", "", ro).strip()
-   
+    raw_output = response.content
+
+    cleaned = re.sub(r"```json\s*|\s*```", "", raw_output).strip()
+
     try:
-        parsed = LLMOutput.model_validate_json(raw_output)
+        parsed = LLMOutput.model_validate_json(cleaned)
     except Exception:
-        parsed = LLMOutput(response=raw_output, lies_told=[])
+        parsed = LLMOutput(response=cleaned, lies_told=[])
 
     chat_hist[-1] = {
         "player": player_message,
         "npc": parsed.response
     }
 
-    # trim history (performance)
-    if len(chat_hist) > 4:
-        npc.chat_history = chat_hist[-4:]
-    else:
-        npc.chat_history = chat_hist
+    #print(f"trial: {parsed.response}")
+
+    npc.chat_history =  chat_hist
 
     if npc_id != 'officer':
         npc.lies_told = list(set(npc.lies_told + parsed.lies_told))
 
-  
-    state["npcs"][npc_id] = npc
 
-    return { "npcs":
-        {
+    #print(f"chat hist: {npc.chat_history}")
+    
+    
+    return {
+        "npcs": {
             **state['npcs'],
-            npc_id : npc
+            npc_id: npc
         }
     }
-
-
-print("interaction.py: run successful")
+    
+print("interaction.py ran succesfully")

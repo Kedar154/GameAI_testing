@@ -6,9 +6,9 @@ def intent(state: State) -> str:
     
     '''if state['accusation_available'] and current_npc == "graves":
         return "accusation_available"'''
-    if state['search']:
+    if state['search'] != False and state['search_location']!= "":
         return "search"
     elif current_npc == "officer":
         return "officer"
-    else:
+    elif current_npc in ['arjun', 'bell', 'graves']:
         return "npc"  # current_npc is arjun, bell, or graves

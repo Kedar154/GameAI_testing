@@ -35,8 +35,9 @@ garph.add_node("officer_search_node", officer_search_node)
 garph.add_node("discover_evidence_node", discover_evidence_node)
 garph.add_node("update_gates_node", update_gates_node)
 garph.add_node("update", update)
-
 garph.add_node("accusation_node", accusation_node)
+
+
 garph.set_entry_point("input")
 garph.add_edge("input", 'update')
 garph.add_conditional_edges(
@@ -45,6 +46,7 @@ garph.add_conditional_edges(
         {
             "search": "officer_search_node",
             "npc":       "retrieve",
+            "npc": "lie_detection",
             "accusation_available":      "accusation_node",
             "officer":         "prompt_response",
         },
@@ -54,7 +56,7 @@ garph.add_edge("officer_search_node", "discover_evidence_node")
 garph.add_edge("discover_evidence_node", "update_gates_node")
 garph.add_edge("update_gates_node",       'input')
 
-garph.add_edge("retrieve",        "lie_detection")
+garph.add_edge("retrieve",        "prompt_response")
 garph.add_edge('lie_detection', "prompt_response")
 garph.add_edge("prompt_response", "summary")
 garph.add_edge("summary",       'input')
