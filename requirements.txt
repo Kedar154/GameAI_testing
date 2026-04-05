@@ -4,7 +4,6 @@ langchain-core
 langchain-google-genai
 langgraph
 neo4j
-langchain-community
 numpy
 google-generativeai
 fastapi
