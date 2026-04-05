@@ -75,8 +75,8 @@ def extract_response(graph_state: dict) -> dict:
     lies_caught = {}
 
     for npc_id, npc in npcs.items():
-        if npc_id == "officer":
-            continue
+        #if npc_id == "officer":
+        #    continue
         scores[npc_id]      = getattr(npc, "sus", 0.0)
         summaries[npc_id]   = getattr(npc, "running_summary", "")
         lies_caught[npc_id] = getattr(npc, "lies_caught", [])
@@ -84,7 +84,7 @@ def extract_response(graph_state: dict) -> dict:
     return {
         "current_npc":          graph_state.get("current_npc", ""),
         "npc_reply":            graph_state.get("npc_response", ""),
-        "search_result":        graph_state.get("officer_output", ""),
+        "search_result":        graph_state.get("search_result", ""),
         "scores":               scores,
         "total_suspicion":      sum(scores.values()),
         "evidence_found":       graph_state.get("evidence_found", []),
@@ -172,12 +172,12 @@ def search(request: SearchRequest):
 
     result = garph_.invoke(
         Command(
-            resume = "",
+            resume = f"search {location} for me",
             update = {
                 "search":          True,
                 "search_location": location,
                 "current_npc":     "officer",
-                "player_input":    "",
+                "player_input":    f"search {location} for me",
             }
         ),
         config=THREAD
