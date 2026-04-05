@@ -1,5 +1,5 @@
-# FastAPI server — The Shimla Ledger
-# Run: uvicorn main:app --reload 
+# fastapi_connection.py
+# Run: uvicorn fastapi_connection:app --reload
 # Test: http://localhost:8000/docs
 
 import time
@@ -8,10 +8,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from langgraph.types import Command
 
-from nodes.graph     import garph
+from nodes.graph     import garph_
 from nodes.gamestate import state
 
 app = FastAPI()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,24 +20,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-THREAD = {"configurable": {"thread_id": "shimla_default"}}
+THREAD       = {"configurable": {"thread_id": "shimla_default"}}
+LATEST_STATE = {}
 
+VALID_NPCS = {"arjun", "bell", "graves", "officer"}
 
-# ── Location keyword map — text search extraction ─────────────
-LOCATION_KEYWORDS = {
-    "Thorne's study":  ["thorne", "study", "thorne's study"],
-    "Arjun's office":  ["arjun", "office", "arjun's office"],
-    "Reading hall":    ["reading", "hall", "reading hall"],
-    "Storage room":    ["storage", "storage room"],
-    "Interrogation":   ["interrogation"],
-    "Admin office":    ["admin", "administrative", "admin office"],
-    "Pantry":          ["pantry"],
+VALID_LOCATIONS = {
+    "Thorne's study",
+    "Arjun's office",
+    "Reading hall",
+    "Storage room",
+    "Interrogation",
+    "Admin office",
+    "Pantry",
 }
 
-VALID_LOCATIONS = list(LOCATION_KEYWORDS.keys())
+LOCATION_KEYWORDS = {
+    "Thorne's study": ["thorne", "study", "thorne's study"],
+    "Arjun's office": ["arjun", "office", "arjun's office"],
+    "Reading hall":   ["reading", "hall", "reading hall"],
+    "Storage room":   ["storage", "storage room"],
+    "Interrogation":  ["interrogation"],
+    "Admin office":   ["admin", "administrative", "admin office"],
+    "Pantry":         ["pantry"],
+}
 
 
-# ── Request models ────────────────────────────────────────────
+# ── Request Models ─────────────────────────────────────────────
 
 class TalkRequest(BaseModel):
     npc_name:     str
@@ -46,11 +56,8 @@ class SearchRequest(BaseModel):
     location:    str | None = None   # button click
     player_text: str | None = None   # text input
 
-class AccuseRequest(BaseModel):
-    suspect: str
 
-
-# ── Helpers ───────────────────────────────────────────────────
+# ── Helpers ────────────────────────────────────────────────────
 
 def extract_location_from_text(text: str) -> str | None:
     text_lower = text.lower()
@@ -63,35 +70,21 @@ def extract_location_from_text(text: str) -> str | None:
 
 def extract_response(graph_state: dict) -> dict:
     npcs        = graph_state.get("npcs", {})
-    current_npc = graph_state.get("current_npc", "")
-    npc_reply   = ""
+    scores      = {}
+    summaries   = {}
+    lies_caught = {}
 
-    if current_npc and current_npc in npcs:
-        chat = npcs[current_npc].chat_history
-        if chat:
-            npc_reply = chat[-1].get("npc", "")
-
-    scores = {
-        npc_id: npc.sus
-        for npc_id, npc in npcs.items()
-        if npc_id != "officer"
-    }
-
-    summaries = {
-        npc_id: npc.running_summary
-        for npc_id, npc in npcs.items()
-        if npc_id != "officer"
-    }
-
-    lies_caught = {
-        npc_id: npc.lies_caught
-        for npc_id, npc in npcs.items()
-        if npc_id != "officer"
-    }
+    for npc_id, npc in npcs.items():
+        if npc_id == "officer":
+            continue
+        scores[npc_id]      = getattr(npc, "sus", 0.0)
+        summaries[npc_id]   = getattr(npc, "running_summary", "")
+        lies_caught[npc_id] = getattr(npc, "lies_caught", [])
 
     return {
-        "npc_reply":            npc_reply,
-        "officer_output":       graph_state.get("officer_output", ""),
+        "current_npc":          graph_state.get("current_npc", ""),
+        "npc_reply":            graph_state.get("npc_response", ""),
+        "search_result":        graph_state.get("officer_output", ""),
         "scores":               scores,
         "total_suspicion":      sum(scores.values()),
         "evidence_found":       graph_state.get("evidence_found", []),
@@ -102,18 +95,16 @@ def extract_response(graph_state: dict) -> dict:
     }
 
 
-# ── Endpoints ─────────────────────────────────────────────────
+# ── Endpoints ──────────────────────────────────────────────────
 
-# ENNDPOINT 1
 @app.get("/start")
 def start_game():
-    global THREAD
+    global THREAD, LATEST_STATE
 
-    # New thread_id = fresh game session every time
     THREAD = {"configurable": {"thread_id": f"shimla_{int(time.time())}"}}
 
-    # Only place that calls invoke(state) — fresh graph start
-    result = garph.invoke(state, config=THREAD)
+    result       = garph_.invoke(state, config=THREAD)
+    LATEST_STATE = result
 
     return {
         "status":    "game_started",
@@ -121,17 +112,21 @@ def start_game():
         **extract_response(result)
     }
 
-#  ENDPOINT 2
 
 @app.post("/talk")
 def talk(request: TalkRequest):
+    global LATEST_STATE
+
     npc_name     = request.npc_name.lower().strip()
     player_input = request.player_input.strip()
 
-    if npc_name not in ["arjun", "graves", "bell", "officer"]:
-        return {"error": f"Unknown NPC: {npc_name}"}
+    if npc_name not in VALID_NPCS:
+        return {"error": "invalid_npc", "message": f"Unknown NPC: {npc_name}"}
 
-    result = garph.invoke(
+    if not player_input:
+        return {"error": "empty_input", "message": "player_input cannot be empty."}
+
+    result = garph_.invoke(
         Command(
             resume = player_input,
             update = {
@@ -143,21 +138,20 @@ def talk(request: TalkRequest):
         ),
         config=THREAD
     )
+    LATEST_STATE = result
 
-    return extract_response(result)
+    return {"action": "talk", **extract_response(result)}
 
-# ENDPOINT 3
 
 @app.post("/search")
 def search(request: SearchRequest):
+    global LATEST_STATE
+
     location = None
 
     if request.location:
-        # Button path — location sent directly
         location = request.location.strip()
-
     elif request.player_text:
-        # Text path — extract location from player message
         location = extract_location_from_text(request.player_text)
         if not location:
             return {
@@ -176,56 +170,41 @@ def search(request: SearchRequest):
             "message": f"Unknown location: {location}"
         }
 
-    # Both button and text paths resume graph identically from here
-    result = garph.invoke(
+    result = garph_.invoke(
         Command(
             resume = "",
             update = {
                 "search":          True,
                 "search_location": location,
-                "current_npc":     "",
+                "current_npc":     "officer",
                 "player_input":    "",
             }
         ),
         config=THREAD
     )
+    LATEST_STATE = result
 
     return {
-        "script":            result.get("officer_output", ""),
+        "action":            "search",
         "location_searched": location,
         **extract_response(result)
     }
 
-# ENDPOINT 4
 
-@app.post("/accuse")
-def accuse(request: AccuseRequest):
-    suspect = request.suspect.strip().lower()
+@app.get("/current-situation")
+def current_situation():
+    npcs = LATEST_STATE.get("npcs", {})
 
-    result = garph.invoke(
-        Command(
-            resume = suspect,
-            update = {
-                "current_npc":     suspect,
-                "player_input":    suspect,
-                "search":          False,
-                "search_location": "",
-            }
-        ),
-        config=THREAD
-    )
-
-    return {
-        "result":  result.get("officer_output", ""),
-        "correct": suspect == "graves",
-        **extract_response(result)
+    npc_summaries = {
+        npc_id: getattr(npc, "running_summary", "No interactions yet.")
+        for npc_id, npc in npcs.items()
+        if npc_id != "officer"
     }
 
-# ENDPOINT 5 
-
-@app.get("/state")
-def get_state():
-    # Read-only — does not resume graph, just reads frozen state
-    current = garph.get_state(config=THREAD)
-    values  = current.values if current else {}
-    return extract_response(values)
+    return {
+        "status":               "current_game_state",
+        "evidence_found":       LATEST_STATE.get("evidence_found", []),
+        "locations_unlocked":   LATEST_STATE.get("locations_unlocked", {}),
+        "accusation_available": LATEST_STATE.get("accusation_available", False),
+        "npc_summaries":        npc_summaries,
+    }
